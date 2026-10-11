@@ -1,0 +1,28 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.caf.lccustomcity.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "CityStyleZoneMixin",
+    "CityLayoutMixin",
+    "BuildingRotationMixin",
+    "VacantSurfaceMixin",
+    "CityFactorCacheMixin",
+    "BuildingCountMixin",
+    "MultiChunkGapMixin",
+    "ScatteredMarginMixin",
+    "StructureAvoidanceMixin",
+    "CityFoundationMixin",
+    "VanillaSurfaceStructureMixin",
+    "ServerStopStatsMixin",
+    "BuildStatsCommandMixin",
+    "CityCommandMixin",
+    "SpawnCityMixin",
+    "FillPlotsMixin",
+    "DynamicStructureMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

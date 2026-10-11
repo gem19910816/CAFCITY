@@ -1,0 +1,103 @@
+{
+  "source": "ChaosZPack 1.4.1 TacZ by ChaosCraft",
+  "source_sha256": "62e8db0ab3748e3dec0cb65467b73e444b4d444ffea2fc9c6ba37442568b5c0b",
+  "variants": {
+    "straight": [
+      "street_straight1_0_0_0",
+      "street_straight2_0_0_0",
+      "street_straight4_0_0_0",
+      "street_straight5_0_0_0",
+      "street_straight6_0_0_0",
+      "street_straight7_0_0_0",
+      "street_straight8_0_0_0",
+      "street_straight9_0_0_0",
+      "street_straight10_0_0_0",
+      "street_straight11_0_0_0",
+      "street_straight12_0_0_0"
+    ],
+    "bend": [
+      "street_bend1_0_0_0",
+      "street_bend2_0_0_0",
+      "street_bend3_0_0_0",
+      "street_bend4_0_0_0",
+      "street_bend5_0_0_0"
+    ],
+    "end": [
+      "street_end1_0_0_0",
+      "street_end2_0_0_0",
+      "street_end3_0_0_0"
+    ],
+    "full": [
+      "street_full1_0_0_0",
+      "street_full2_0_0_0"
+    ],
+    "none": [
+      "street_none1_0_0_0",
+      "street_none2_0_0_0"
+    ],
+    "t": [
+      "street_t1_0_0_0",
+      "street_t2_0_0_0",
+      "street_t3_0_0_0",
+      "street_t4_0_0_0",
+      "street_t5_0_0_0",
+      "street_t6_0_0_0",
+      "street_t7_0_0_0"
+    ],
+    "all": [
+      "street_all1_0_0_0",
+      "street_all2_0_0_0",
+      "street_all3_0_0_0"
+    ]
+  },
+  "decorations": [
+    "bus_stop1",
+    "bus_stop2",
+    "bus_stop3",
+    "building_front1",
+    "building_front2",
+    "building_front3"
+  ],
+  "original_part_sha256": {
+    "street_straight1_0_0_0": "636889e586e397ba4aeef533eeaabec99faf0e9101ee5159e21b088640aed9ae",
+    "street_straight2_0_0_0": "5469a8ec68cafee77a12c2ddc86cfd818dd4eed4adc3ae826913912db663f8dd",
+    "street_straight4_0_0_0": "ce734f0b0136d9420c54a59b6e29d0e8880fce8f7919dfe4ec3535669a96b786",
+    "street_straight5_0_0_0": "4bfa7eef3c0cb20020c8af0413ecf7eebc9a6ecf60bb14d6b108357f1194444f",
+    "street_straight6_0_0_0": "6e058129dd6bd0ce13b88a122c9330ea7d945cbc8606e4298924f252268ea61e",
+    "street_straight7_0_0_0": "266971c274c995b9257bfb867a39aa3d60a64c04b3d4261dbf4a225961802517",
+    "street_straight8_0_0_0": "e020baeda3e2155954c9f052ecef7301f873d475fb3ffa6921f80eb9881b71c6",
+    "street_straight9_0_0_0": "f1ed581cfc5613ccce2bc134a1290616639e732fad746c0729fc0a4d5c4be28c",
+    "street_straight10_0_0_0": "0f7f73dae755262a46471b8c9a8b85164b7c140db3fa82b74195cc7e025d2211",
+    "street_straight11_0_0_0": "eed0e9078c4386d30c97c9a9543c8cfbb998626575cf01991f3ec67c89ad9507",
+    "street_straight12_0_0_0": "e85f3ca1ecafff71dc6985b1e6dea61a1cc2cf6c36011cc34702fce7fd6377bf",
+    "street_bend1_0_0_0": "a1a22a1db34d909906660bf41e4ec0713db4a9140a09d10f4f377a38e3bdcdbe",
+    "street_bend2_0_0_0": "e72cac426a2b238f8d7766f2f0d3ffd242efda2207f769fd6fcc7692fac10b4c",
+    "street_bend3_0_0_0": "7b73b4ff20fbcaa246397f926b2bf8e85f0f948b523f99f06cf3387d0667c4f1",
+    "street_bend4_0_0_0": "9cac67d816eada9cd3fcd27a12f682737daf5d66575acdcb6ad567acd88e2d66",
+    "street_bend5_0_0_0": "a51296987756f32c5cf8930f5650a9c717db0159794a6e5c96de6b9c32619a25",
+    "street_end1_0_0_0": "703291d575da080810614ecaad4ad8140ee772640d9ed24ea4a2615814e7e2b0",
+    "street_end2_0_0_0": "9a1090629d29f10fd8e4e4045f07ef6558ba3b48539589d68b34333e9525e1d2",
+    "street_end3_0_0_0": "ee724784ecf449c88ac513f0c0e23facff5338db6331b3402fb68f59d4776945",
+    "street_full1_0_0_0": "3c70d8c09f54f00fa1e4f03a319e9998212b3755dbc6cbe15cfa7983cff675d4",
+    "street_full2_0_0_0": "f482cab150b03f301d57c954e4a7d75922b1ebb521380e4ff8c115af90a902d8",
+    "street_none1_0_0_0": "70b01d6ae7301d7cce730f472adc01a5f5300043f505e177b469819cb56bfeb7",
+    "street_none2_0_0_0": "acff182e3a7ef9237a2ee6e71634d7ed0e79abfe86bfc8163b9dae767cd7125b",
+    "street_t1_0_0_0": "91e8a79138132db5bb522d47ef47440748ca968b00662b8a639c5c9a2124e66d",
+    "street_t2_0_0_0": "ed7191298794e3db8fd23a05f393c2cbd0c2f938ebe6ec3c24b6e2bbf21eec25",
+    "street_t3_0_0_0": "0ad281b85658085d7b7840f7328c9c8d7e13f38c96f739e6f0892ebd35ec7d28",
+    "street_t4_0_0_0": "60b717b4a2a80734267f66bea3de5bb7353ffe0a070a0c62a8930719a8916d79",
+    "street_t5_0_0_0": "5422d754fcd0c540316c276391df65e0d290075db70b5df8f8fb29fc1a374f7c",
+    "street_t6_0_0_0": "d9095eae93eaba31825a58998b9059c41a862799022ce026cb374373746e6625",
+    "street_t7_0_0_0": "22b2c08d0da92eb6cd91e97830e2606c849f682a5b7a67e0235317f8c871bd31",
+    "street_all1_0_0_0": "7386eea307f4f6973bd0a063f33da546c63f2286e5ec15c5afe17306c0663f95",
+    "street_all2_0_0_0": "9f37fd3aae21d7a32d84831bc24b49ad89e2a4826aece25bbad984188184132c",
+    "street_all3_0_0_0": "9f9ca2d79fb007550dc178fc719ae00dbd95232c084caf72ce8c665f2f4eb85b",
+    "bus_stop1": "f44da5d16594a6b21e0ec1eb817d83c3389ab80b70426db79bd0a6ec36b6dd49",
+    "bus_stop2": "62b89339b764e7e6884d15efda1371d72c6165ecc1bfaceeb49a36adf45a9606",
+    "bus_stop3": "2c27d5ff100cbeb851ae1b4950951566cfee2e236d5da2b5cdfa0319fd688beb",
+    "building_front1": "42c35784e13cdc56f218fba143bd1eec312f5e805005b233c9f2b4c1a60791ba",
+    "building_front2": "74449db498bb53279381dbb6001313c50a9468ebbd06e0bb99a950fe00456716",
+    "building_front3": "0328b4fa39c6580eb86a307befc75e2a5dca0832cb21843932d35bda05d99c7e"
+  },
+  "adaptation": "Existing vacant plots; compatible states; leaf height capped at two."
+}

@@ -1,0 +1,44 @@
+modLoader="javafml"
+license="MIT"
+loaderVersion="[2,)"
+authors="CAF"
+
+[[mods]]
+modId="caf_lc_customcity"
+version="${file.jarVersion}"
+displayName="CAF Lost Cities Custom City Addon"
+description='''
+CAF失落城市自定义城市附属
+
+让失落城市只生成你自己添加的建筑。
+把整栋建筑文件放进 config/失落城市建筑/ 后重启游戏即可。
+'''
+
+[[mixins]]
+config = "caf_lc_customcity.mixins.json"
+
+[[dependencies.caf_lc_customcity]]
+modId="neoforge"
+type="required"
+versionRange="[21.1,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.caf_lc_customcity]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.22)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.caf_lc_customcity]]
+modId="lostcities"
+type="required"
+# 千万不要写成 "[8.4,)" 之类!
+# 失落城市的版本号字符串是 "1.21-8.4.4", 按版本比较规则会被拆成
+# 1,21,8,4,4, 第一位 1 就小于 8, 于是判定"不满足 [8.4,)" ——
+# 结果是模组加载直接失败, 游戏都进不去(1.0.18 就是这么崩的)。
+# 用 "[0,)", 只保留 AFTER 的加载顺序要求。
+versionRange="[0,)"
+ordering="AFTER"
+side="BOTH"

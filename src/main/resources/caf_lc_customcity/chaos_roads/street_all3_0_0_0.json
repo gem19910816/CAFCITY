@@ -1,0 +1,365 @@
+{
+  "xsize": 16,
+  "zsize": 16,
+  "palette": {
+    "palette": [
+      {
+        "char": " ",
+        "block": "minecraft:air"
+      },
+      {
+        "char": "d",
+        "block": "minecraft:grass_block[snowy=false]"
+      },
+      {
+        "char": "m",
+        "block": "minecraft:cracked_stone_bricks"
+      },
+      {
+        "char": "l",
+        "block": "immersive_weathering:mossy_stone"
+      },
+      {
+        "char": "e",
+        "block": "minecraft:blackstone"
+      },
+      {
+        "char": "a",
+        "block": "minecraft:deepslate[axis=y]"
+      },
+      {
+        "char": "c",
+        "block": "minecraft:cobbled_deepslate"
+      },
+      {
+        "char": "h",
+        "block": "minecraft:basalt[axis=x]"
+      },
+      {
+        "char": "b",
+        "block": "minecraft:cyan_terracotta"
+      },
+      {
+        "char": "Q",
+        "block": "minecraft:mossy_cobblestone"
+      },
+      {
+        "char": "C",
+        "block": "immersive_weathering:mossy_stone_slab[type=bottom,waterlogged=false]"
+      },
+      {
+        "char": "p",
+        "block": "minecraft:mossy_stone_bricks"
+      },
+      {
+        "char": "k",
+        "block": "minecraft:moss_block"
+      },
+      {
+        "char": "q",
+        "block": "minecraft:stone[weathering=false]"
+      },
+      {
+        "char": "F",
+        "block": "minecraft:stone[weathering=true]"
+      },
+      {
+        "char": "0",
+        "block": "minecraft:cobblestone_stairs[facing=north,half=bottom,shape=straight,waterlogged=false,weathering=false]"
+      },
+      {
+        "char": "f",
+        "block": "minecraft:air"
+      },
+      {
+        "char": "i",
+        "block": "doomsday_decoration:wastepaper_1[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "j",
+        "block": "doomsday_decoration:newspaper[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "I",
+        "block": "doomsday_decoration:wiremesh[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "K",
+        "block": "minecraft:large_fern[half=lower]"
+      },
+      {
+        "char": "r",
+        "block": "doomsday_decoration:wastepaper_2[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "n",
+        "block": "doomsday_decoration:sandbag[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "z",
+        "block": "doomsday_decoration:sandbag_2[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "s",
+        "block": "doomsday_decoration:sandbag_4[facing=east,waterlogged=false]"
+      },
+      {
+        "char": "3",
+        "block": "doomsday_decoration:woodencrate[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "v",
+        "block": "doomsday_decoration:wiremesh[facing=east,waterlogged=false]"
+      },
+      {
+        "char": "X",
+        "block": "doomsday_decoration:pan[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "L",
+        "block": "doomsday_decoration:browning_m_2[facing=east,waterlogged=false]"
+      },
+      {
+        "char": "4",
+        "block": "doomsday_decoration:remains_4[facing=west]"
+      },
+      {
+        "char": "E",
+        "block": "doomsday_decoration:acrate[waterlogged=false]",
+        "tag": {
+          "z": -92,
+          "x": -251,
+          "id": "doomsday_decoration:acrate",
+          "y": -59,
+          "Items": []
+        }
+      },
+      {
+        "char": "R",
+        "block": "doomsday_decoration:blood[facing=north,waterlogged=false]"
+      },
+      {
+        "char": "5",
+        "block": "doomsday_decoration:remains_999[facing=east]"
+      },
+      {
+        "char": "O",
+        "block": "doomsday_decoration:browning_m_2[facing=west,waterlogged=false]"
+      },
+      {
+        "char": "M",
+        "block": "doomsday_decoration:wiremesh[facing=west,waterlogged=false]"
+      },
+      {
+        "char": "o",
+        "block": "doomsday_decoration:sandbag[facing=east,waterlogged=false]"
+      },
+      {
+        "char": "u",
+        "block": "doomsday_decoration:sandbag_4[facing=north,waterlogged=false]"
+      },
+      {
+        "char": "1",
+        "block": "doomsday_decoration:cup[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "y",
+        "block": "doomsday_decoration:sandbag_4[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "x",
+        "block": "doomsday_decoration:sandbag_2[facing=east,waterlogged=false]"
+      },
+      {
+        "char": "Z",
+        "block": "minecraft:structure_void"
+      },
+      {
+        "char": "t",
+        "block": "doomsday_decoration:sandbag_2[facing=west,waterlogged=false]"
+      },
+      {
+        "char": "U",
+        "block": "doomsday_decoration:damageddoor_132[facing=east,waterlogged=false]"
+      },
+      {
+        "char": "Y",
+        "block": "doomsday_decoration:damagedoor_12[facing=north,waterlogged=false]"
+      },
+      {
+        "char": "7",
+        "block": "minecraft:structure_void"
+      },
+      {
+        "char": "P",
+        "block": "doomsday_decoration:acrate_2[waterlogged=false]"
+      },
+      {
+        "char": "W",
+        "block": "doomsday_decoration:blood[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "2",
+        "block": "doomsday_decoration:remains_44[facing=south]"
+      },
+      {
+        "char": "V",
+        "block": "doomsday_decoration:blood_4[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "S",
+        "block": "doomsday_decoration:bottle[facing=south,waterlogged=false]"
+      },
+      {
+        "char": "6",
+        "block": "doomsday_decoration:remains_444[facing=south]"
+      },
+      {
+        "char": "B",
+        "block": "doomsday_decoration:browning_m_2[facing=north,waterlogged=false]"
+      },
+      {
+        "char": "G",
+        "block": "doomsday_decoration:wiremesh[facing=north,waterlogged=false]"
+      },
+      {
+        "char": "A",
+        "block": "doomsday_decoration:sandbag_4[facing=west,waterlogged=false]"
+      },
+      {
+        "char": "w",
+        "block": "doomsday_decoration:sandbag[facing=north,waterlogged=false]"
+      },
+      {
+        "char": "J",
+        "block": "doomsday_decoration:sandbag_2[facing=north,waterlogged=false]"
+      },
+      {
+        "char": "T",
+        "block": "doomsday_decoration:newspaper[facing=west,waterlogged=false]"
+      },
+      {
+        "char": "g",
+        "block": "minecraft:air"
+      },
+      {
+        "char": "H",
+        "block": "minecraft:large_fern[half=upper]"
+      },
+      {
+        "char": "N",
+        "block": "doomsday_decoration:radio[facing=south,waterlogged=false]"
+      }
+    ]
+  },
+  "slices": [
+    [
+      "dmldeaechbchdQmd",
+      "CmpdkbccaaaedClm",
+      "qqldahecbabbdqpq",
+      "ddddcaabbabedddd",
+      "bbhbabebcbceeeca",
+      "bbbeeeaeeeceeaea",
+      "bbcceahaehhabbaa",
+      "cbcchabcaaehaccb",
+      "ccacceecbbaaabbe",
+      "khbacaakcehaahha",
+      "cbbacceabcakabac",
+      "cbbbcbbbcabhacce",
+      "ddddacbacbabaddd",
+      "dlldebckahaadmdk",
+      "ppkdahhbceccdlqF",
+      "d0Fdbcbbccaedpmd"
+    ],
+    [
+      "fi j     j  fijf",
+      "  IKrnznnzn f  f",
+      "  rK s   3s I  i",
+      "fvff     X jfffi",
+      "i L 4Er R5iO M  ",
+      " ou    j 1  ryoi",
+      " x     Z      xi",
+      " t          U tj",
+      "Y               ",
+      " x     7 j P ix ",
+      " ou E     W2V ov",
+      "S  r6         oj",
+      "fvff       B fsv",
+      "f  GBA    A ffff",
+      "  ff wJwwJw G  i",
+      "fT f i      f ff"
+    ],
+    [
+      "g           g  g",
+      "   H  ynu   g  g",
+      "   H            ",
+      "g gg        ggg ",
+      "                ",
+      "                ",
+      "              A ",
+      "              t ",
+      "                ",
+      "           N  t ",
+      "              s ",
+      "                ",
+      "g gg         g  ",
+      "g           gggg",
+      "  gg  ynzu      ",
+      "g  g        g gg"
+    ],
+    [
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                "
+    ],
+    [
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                "
+    ],
+    [
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                ",
+      "                "
+    ]
+  ]
+}

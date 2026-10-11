@@ -1,0 +1,117 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.gradle.userdev' version '7.0.171'
+}
+
+// ---------------------------------------------------------------------------
+// 版本号 = <mod_version>.<buildNumber>, 构建号存在 build_number.properties,
+// 每次构建成功自动 +1 —— 与 mod制作\ 下其他 CAF 附属保持一致。
+// ---------------------------------------------------------------------------
+def buildNumberFile = file('build_number.properties')
+def buildNumber = 1
+if (buildNumberFile.exists()) {
+    try {
+        buildNumber = buildNumberFile.text.trim().toInteger()
+    } catch (Exception ignored) {
+        buildNumber = 1
+    }
+}
+
+version = "${project.mod_version}.${buildNumber}"
+group = project.mod_group
+
+base {
+    archivesName = "${project.mod_id}-${project.minecraft_version}"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+println ">>> [CAF] building ${project.mod_id} version ${project.version} (NeoForge ${project.neo_version})"
+
+// ---------------------------------------------------------------------------
+// 开发运行配置 (gradlew runClient / runServer)
+// ---------------------------------------------------------------------------
+runs {
+    client {
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        programArguments.addAll '--username', 'Dev'
+    }
+    server {
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        programArgument '--nogui'
+    }
+    data {
+        programArguments.addAll '--mod', project.mod_id, '--all',
+                '--output', file('src/generated/resources/').getAbsolutePath(),
+                '--existing', file('src/main/resources/').getAbsolutePath()
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    // 本工程自带的本地 jar(如需编译期依赖失落城市本体, 丢进 ./libs)
+    flatDir { dirs 'libs' }
+}
+
+dependencies {
+    implementation "net.neoforged:neoforge:${project.neo_version}"
+    // 注意: 本模组【不需要】编译期依赖失落城市 —— 我们只生成数据包 JSON, 不调用 LC 的类。
+    // 对 LC 的依赖只在 neoforge.mods.toml 里声明(含 ordering="AFTER"),
+    // 用来保证我们的 data/ 覆盖顺序排在 LC 之后。
+}
+
+// 把 gradle.properties 里的版本变量注入 neoforge.mods.toml
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand(
+                'version': project.version,
+                'minecraft_version': project.minecraft_version,
+                'minecraft_version_range': project.minecraft_version_range,
+                'neo_version_range': project.neo_version_range,
+                'loader_version_range': project.loader_version_range,
+                'mod_id': project.mod_id,
+                'mod_name': project.mod_name,
+                'mod_name_cn': project.mod_name_cn,
+                'mod_authors': project.mod_authors,
+                'mod_license': project.mod_license,
+                'mod_description': project.mod_description,
+                'lostcities_modid': project.lostcities_modid,
+                'lostcities_version_range': project.lostcities_version_range
+        )
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'     : project.mod_id,
+                'Specification-Vendor'    : project.mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.mod_name,
+                'Implementation-Version'  : project.version,
+                'Implementation-Vendor'   : project.mod_authors
+        ])
+    }
+}
+
+// 构建成功后再递增构建号
+tasks.named('build') {
+    finalizedBy 'incrementBuildNumber'
+}
+
+tasks.register('incrementBuildNumber') {
+    doLast {
+        def next = buildNumber + 1
+        buildNumberFile.text = next.toString()
+        println ">>> [CAF] 构建完成 (版本 ${project.version}); 下次构建为 ${project.mod_version}.${next}"
+    }
+}

@@ -1,0 +1,356 @@
+﻿param(
+    # Optional: use these real building files instead of the synthetic ones from
+    # TestBuildings. Lets us dry-run the user's actual buildings through the
+    # current code without starting the game.
+    [string]$Buildings = ''
+)
+
+# CAF Lost Cities Custom City Addon - offline test runner
+#
+# Compiles the mod plus the offline smoke tests / audits and runs them all
+# inside build\rt\ (a sandbox). It never packages, never deploys, and never
+# touches the game instance: StartupSmokeTest builds a fake instance inside its
+# sandbox and passes that directory to LcCustomCityMod.startup(...), so
+# FMLPaths.GAMEDIR is never involved.
+#
+# Two classpath groups, because the tests have different needs:
+#   Group A (4 jars: FML loader, event bus, gson, slf4j)
+#       the mod itself + ConverterSmokeTest / DataJarSmokeTest /
+#       InjectSmokeTest / StartupSmokeTest / TestBuildings /
+#       PackSwapSmokeTest / BuildingStatsSmokeTest
+#   Group B (build\real-cp.txt = 107 real jars incl. the srg client jar)
+#       DecodeAudit / RefAudit / RealPackLoaderProbe / ProfileForceProbe /
+#       CityFactorPerfSmokeTest - they talk to the real Lost Cities classes and
+#       com.mojang.serialization
+#
+# Skipped on purpose:
+#   PackFinderBridgeSmokeTest - needs tools\stubs\*, which are gone. The real
+#                               behaviour is covered by RealPackLoaderProbe.
+#
+# Usage: powershell -ExecutionPolicy Bypass -File .\tools\run-offline-tests.ps1
+#
+# NOTE: this file is intentionally ASCII-only. Windows PowerShell 5.1 reads a BOM-less
+# .ps1 as ANSI (CP936 on a Chinese system), and a Chinese comment can then eat the
+# newline right after it. That is not cosmetic: it silently swallowed three Run-Step
+# lines in the past (ModsTomlSmokeTest's step never ran once). Keep it ASCII.
+
+$ErrorActionPreference = 'Stop'
+$root = Split-Path $PSScriptRoot -Parent
+Set-Location -LiteralPath $root
+
+# The inner data pack directory name (LcCustomCityMod.INNER_PACK_NAME). ASCII on
+# purpose, which is also why it is safe to embed in this ASCII-only script.
+$packName = 'caf_lc_customcity'
+
+function Read-Props([string]$file) {
+    $h = @{}
+    if (Test-Path -LiteralPath $file) {
+        foreach ($line in (Get-Content -LiteralPath $file -Encoding UTF8)) {
+            $t = $line.Trim()
+            if ($t -and -not $t.StartsWith('#') -and $t.Contains('=')) {
+                $i = $t.IndexOf('=')
+                $h[$t.Substring(0, $i).Trim()] = $t.Substring($i + 1).Trim()
+            }
+        }
+    }
+    return $h
+}
+
+function Find-Newest([string]$dir, [string]$pattern) {
+    if (-not (Test-Path -LiteralPath $dir)) { return $null }
+    $f = Get-ChildItem -LiteralPath $dir -Recurse -Filter $pattern -File -ErrorAction SilentlyContinue |
+         Sort-Object FullName | Select-Object -Last 1
+    if ($f) { return $f.FullName }
+    return $null
+}
+
+$local = Read-Props (Join-Path $root 'local.properties')
+$jdk = $local['java_home']
+if (-not $jdk) { $jdk = $env:JAVA_HOME }
+$javac = Join-Path $jdk 'bin\javac.exe'
+$java  = Join-Path $jdk 'bin\java.exe'
+if (-not (Test-Path -LiteralPath $javac)) { Write-Host "JDK not found" -ForegroundColor Red; exit 1 }
+
+$libs = $local['minecraft_libraries']
+$loader = Find-Newest (Join-Path $libs 'net\neoforged\fancymodloader\loader') 'loader-*.jar'
+$bus    = Find-Newest (Join-Path $libs 'net\neoforged\bus') 'bus-*.jar'
+$gson   = Find-Newest (Join-Path $libs 'com\google\code\gson\gson') 'gson-*.jar'
+$slf4j  = Find-Newest (Join-Path $libs 'org\slf4j\slf4j-api') 'slf4j-api-*.jar'
+$cp = @($loader, $bus, $gson, $slf4j) -join ';'
+
+# Real Minecraft classpath (used by the audits / the real-class probe).
+$realCpFile = Join-Path $root 'build\real-cp.txt'
+$cpReal = $null
+if (Test-Path -LiteralPath $realCpFile) { $cpReal = (Get-Content -LiteralPath $realCpFile -Raw).Trim() }
+
+# real-cp.txt comes from the version JSON + the srg client jar, so it has the
+# FML loader and the event bus but NOT the NeoForge jar itself. RealPackLoaderProbe
+# imports net.neoforged.neoforge.event.AddPackFindersEvent, so add the NeoForge
+# jars explicitly. The universal jar carries the full NeoForge classes; the
+# client jar is the patch overlay.
+$neoJars = @(Get-ChildItem -LiteralPath (Join-Path $libs 'net\neoforged\neoforge') -Recurse -Filter 'neoforge-*.jar' -File -ErrorAction SilentlyContinue |
+             Sort-Object { if ($_.Name -like '*universal*') { 0 } else { 1 } } |
+             ForEach-Object { $_.FullName })
+if ($neoJars.Count -gt 0) {
+    $add = $neoJars -join ';'
+    if ($cpReal) { $cpReal = "$cpReal;$add" } else { $cpReal = $add }
+}
+if (-not $cpReal) { Write-Host "build\real-cp.txt not found - group B tests will be skipped" -ForegroundColor Yellow }
+
+# Locate the Lost Cities jar in the instance (read-only).
+$instance = Split-Path $local['deploy_mods'] -Parent
+$lcJar = $null
+if (Test-Path -LiteralPath (Join-Path $instance 'mods')) {
+    $lcJar = (Get-ChildItem -LiteralPath (Join-Path $instance 'mods') -Filter '*lostcities*.jar' -File -ErrorAction SilentlyContinue |
+              Select-Object -First 1).FullName
+}
+if (-not $lcJar) { Write-Host "Lost Cities jar not found under $instance\mods" -ForegroundColor Red; exit 1 }
+
+# UTF-8 java output so Chinese paths are readable.
+$env:JAVA_TOOL_OPTIONS = '-Duser.language=en -Duser.country=US -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8'
+
+Write-Host "JDK        : $jdk" -ForegroundColor DarkGray
+Write-Host "Lost Cities: $lcJar" -ForegroundColor DarkGray
+Write-Host "Real cp    : $(if ($cpReal) { ($cpReal.Split(';').Count).ToString() + ' jars' } else { 'missing' })" -ForegroundColor DarkGray
+
+# ---- sandbox ----
+$rt = Join-Path $root 'build\rt'
+if (Test-Path -LiteralPath $rt) { Remove-Item -LiteralPath $rt -Recurse -Force }
+$classesA = Join-Path $rt 'classesA'
+$classesB = Join-Path $rt 'classesB'
+# -Buildings lets us dry-run the user's REAL building files through the current
+# code. When it is given, TestBuildings is skipped so the synthetic set cannot
+# mix into the results.
+$blds = Join-Path $rt 'buildings'
+if ($Buildings) {
+    if (-not (Test-Path -LiteralPath $Buildings)) { throw "Building directory not found: $Buildings" }
+    $blds = (Resolve-Path -LiteralPath $Buildings).Path
+    Write-Host "Using REAL building files from: $blds" -ForegroundColor Cyan
+}
+New-Item -ItemType Directory -Force -Path $classesA, $classesB | Out-Null
+if (-not $Buildings) { New-Item -ItemType Directory -Force -Path $blds | Out-Null }
+
+# ---- group A ----
+# Mixin sources (com\caf\lccustomcity\mixin) are excluded here: they need the
+# Mixin library + the Lost Cities jar + the real classpath, and are compiled in
+# their own step below. The tests never reference mixin classes.
+$mixinDir = Join-Path $root 'src\main\java\com\caf\lccustomcity\mixin'
+$implDir = Join-Path $root 'src\main\java\com\caf\lccustomcity\impl'
+$srcAll = @(Get-ChildItem -LiteralPath (Join-Path $root 'src\main\java') -Recurse -Filter *.java -File | ForEach-Object { $_.FullName })
+$src = @($srcAll | Where-Object { -not $_.StartsWith("$mixinDir\") -and -not $_.StartsWith("$implDir\") })
+$srcMixin = @($srcAll | Where-Object { $_.StartsWith("$mixinDir\") -or $_.StartsWith("$implDir\") })
+$testsA = @()
+foreach ($n in @('ConverterSmokeTest', 'DataJarSmokeTest', 'InjectSmokeTest', 'StartupSmokeTest', 'ModsTomlSmokeTest', 'ZoningSmokeTest', 'ZoneWeightSmokeTest', 'LootSmokeTest', 'RoadPaletteSmokeTest', 'CountLimitSplitSmokeTest', 'GapRuleSmokeTest', 'ScatteredMarginSmokeTest', 'ForceFlattenSmokeTest', 'WideRoadBlockSmokeTest', 'ZoneNormalizeSmokeTest', 'CitySizeConfigSmokeTest', 'PackSwapSmokeTest', 'BuildingStatsSmokeTest', 'HighwayStyleSmokeTest', 'BridgeStyleSmokeTest', 'SpawnCitySmokeTest', 'BuildingScanDepthSmokeTest', 'CityCommandSmokeTest', 'PlotFillSmokeTest')) {
+    $p = Join-Path $root "tools\smoke\$n.java"
+    if (Test-Path -LiteralPath $p) { $testsA += $p }
+}
+$p = Join-Path $root 'tools\TestBuildings.java'
+if (Test-Path -LiteralPath $p) { $testsA += $p }
+
+Write-Host ""
+Write-Host "Group A: compiling $($src.Count) mod file(s) + $($testsA.Count) test file(s) against 4 jars ..." -ForegroundColor Cyan
+& $javac -encoding UTF-8 -nowarn -d $classesA -cp $cp ($src + $testsA)
+if ($LASTEXITCODE -ne 0) { Write-Host "GROUP A COMPILE FAILED" -ForegroundColor Red; exit 1 }
+
+# ---- mixin group ----
+# Wide classpath: 4 base jars + Mixin lib + Lost Cities jar + real-cp.txt +
+# the freshly compiled group A classes. -proc:none skips Mixin's refmap
+# annotation processor (unneeded on mojmap, would crash on missing Gson).
+if ($srcMixin.Count -gt 0) {
+    $mixinJar = Find-Newest (Join-Path $libs 'org\spongepowered\mixin') 'mixin-*.jar'
+    if (-not $mixinJar) { Write-Host "Mixin sources present but mixin-*.jar not found under $libs" -ForegroundColor Red; exit 1 }
+    if (-not $cpReal) { Write-Host "Mixin sources present but build\real-cp.txt is missing" -ForegroundColor Red; exit 1 }
+    $cpMixin = @($cp, $mixinJar, $lcJar, $cpReal, $classesA) -join ';'
+    Write-Host ""
+    Write-Host "Mixin group: compiling $($srcMixin.Count) file(s) with -proc:none ..." -ForegroundColor Cyan
+    & $javac -encoding UTF-8 -nowarn -proc:none -d $classesA -cp $cpMixin $srcMixin
+    if ($LASTEXITCODE -ne 0) { Write-Host "MIXIN GROUP COMPILE FAILED" -ForegroundColor Red; exit 1 }
+}
+
+# ---- group B ----
+$testsB = @()
+foreach ($n in @('DecodeAudit', 'RefAudit')) {
+    $p = Join-Path $root "tools\$n.java"
+    if (Test-Path -LiteralPath $p) { $testsB += $p }
+}
+$p = Join-Path $root 'tools\smoke\RealPackLoaderProbe.java'
+if (Test-Path -LiteralPath $p) { $testsB += $p }
+# ProfileForceProbe needs the real Lost Cities classes to verify that every field name
+# used by LcCustomCityMod.forceProfileSettings() actually exists. A typo there would be
+# swallowed by that method's catch and the profile override would silently do nothing.
+$p = Join-Path $root 'tools\smoke\ProfileForceProbe.java'
+if (Test-Path -LiteralPath $p) { $testsB += $p }
+# CityFactorPerfSmokeTest needs the real Lost Cities classes on the *runtime* classpath:
+# it compiles a fake IDimensionInfo at runtime and calls City/BuildingInfo directly to
+# time how long getCityFactor takes.
+$p = Join-Path $root 'tools\smoke\CityFactorPerfSmokeTest.java'
+if (Test-Path -LiteralPath $p) { $testsB += $p }
+
+$bOk = $false
+if ($cpReal -and $testsB.Count -gt 0) {
+    Write-Host ""
+    Write-Host "Group B: compiling $($testsB.Count) file(s) against the real classpath ..." -ForegroundColor Cyan
+    & $javac -encoding UTF-8 -nowarn -d $classesB -cp "$classesA;$cpReal" $testsB
+    if ($LASTEXITCODE -ne 0) { Write-Host "GROUP B COMPILE FAILED" -ForegroundColor Red; exit 1 }
+    $bOk = $true
+}
+
+# ---- run ----
+$script:failed = 0
+# Total time spent inside Run-Step java processes (per-step time is printed too), so a
+# slow test (CityFactorPerfSmokeTest measures the real getCityFactor scan) is visible.
+$script:stepSecs = 0.0
+$suiteSw = [System.Diagnostics.Stopwatch]::StartNew()
+
+# The tests live in packages (or not), so derive the fully qualified main class
+# from the source file instead of guessing.
+function Get-MainClass([string]$file) {
+    $name = (Split-Path $file -Leaf) -replace '\.java$', ''
+    foreach ($l in (Get-Content -LiteralPath $file -Encoding UTF8)) {
+        if ($l -match '^\s*package\s+([A-Za-z0-9_.]+)\s*;') { return $Matches[1] + '.' + $name }
+    }
+    return $name
+}
+
+function Run-Step([string]$title, [string]$classPath, [string[]]$arguments) {
+    Write-Host ""
+    Write-Host "===== $title =====" -ForegroundColor Cyan
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    & $java -cp $classPath @arguments
+    $rc = $LASTEXITCODE
+    $sw.Stop()
+    $secs = [Math]::Round($sw.Elapsed.TotalSeconds, 1)
+    if ($rc -eq 0) {
+        Write-Host "---- $title : PASS (exit 0, ${secs}s)" -ForegroundColor Green
+    } else {
+        Write-Host "---- $title : FAIL (exit $rc, ${secs}s)" -ForegroundColor Red
+        $script:failed++
+    }
+    $script:stepSecs = $script:stepSecs + $secs
+}
+
+# Group A needs the 4 jars at RUN time too (slf4j etc.), not just at compile time.
+# Include src/main/resources on the classpath: the mod reads its built-in profile
+# template with getResourceAsStream, and the real jar ships that file. Without this
+# the offline test cannot exercise that code path at all.
+$resDir = Join-Path $root 'src\main\resources'
+$cpRunA = "$classesA;$resDir;$cp"
+
+$startupSandbox = Join-Path $rt 'startup'
+# Put it first: it is a purely static check, and it guards the most expensive error of
+# all (can the game even start).
+Run-Step 'ModsTomlSmokeTest'  $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\ModsTomlSmokeTest.java')), $root, $lcJar)
+if (-not $Buildings) {
+    Run-Step 'TestBuildings'  $cpRunA @((Get-MainClass (Join-Path $root 'tools\TestBuildings.java')), $blds)
+}
+Run-Step 'StartupSmokeTest'   $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\StartupSmokeTest.java')), $startupSandbox, $lcJar, $blds)
+Run-Step 'ConverterSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\ConverterSmokeTest.java')), $blds, $lcJar, (Join-Path $rt 'conv'))
+# Zoning test (inner/outer city grouping): builds a 3-level dir from the
+# TestBuildings output and checks that buildings land in the right citystyle.
+if (-not $Buildings) {
+    Run-Step 'ZoningSmokeTest'    $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\ZoningSmokeTest.java')), (Join-Path $rt 'zoning'), $lcJar, $blds)
+}
+# Loot pool test: builds its own container buildings + zone config, so it does
+# not need the TestBuildings output. Runs unconditionally.
+# Zone weight test: pure Java check of the weighted split logic used by
+# CityStyleZoneMixin (configured ratio -> wider noise segment). No args needed.
+Run-Step 'ZoneWeightSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\ZoneWeightSmokeTest.java')))
+# Road palette test: verifies the road_inner / road_outer palettes generated by
+# RoadStyleGenerator have random-list weights summing to exactly 128 (Lost Cities
+# CompiledPalette fills BlockState[128] and throws otherwise). No args needed.
+Run-Step 'RoadPaletteSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\RoadPaletteSmokeTest.java')))
+Run-Step 'HighwayStyleSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\HighwayStyleSmokeTest.java')), $lcJar)
+Run-Step 'BridgeStyleSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\BridgeStyleSmokeTest.java')), $lcJar)
+Run-Step 'SpawnCitySmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\SpawnCitySmokeTest.java')))
+Run-Step 'BuildingScanDepthSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\BuildingScanDepthSmokeTest.java')))
+Run-Step 'CityCommandSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\CityCommandSmokeTest.java')))
+Run-Step 'PlotFillSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\PlotFillSmokeTest.java')))
+Run-Step 'LootSmokeTest'      $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\LootSmokeTest.java')), (Join-Path $rt 'loot'))
+# Count-limit split test: a zone with both single-cell and multi-cell buildings
+# (both with count limits) must put them into SEPARATE limit tables, so the
+# single-cell selector can never be force-fed a multi-cell id (chunk-gen crash).
+Run-Step 'CountLimitSplitSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\CountLimitSplitSmokeTest.java')), (Join-Path $rt 'countsplit'))
+# Gap rule test: the no-adjacency ring rule + the GapConfig toggle (builds its own temp dir).
+Run-Step 'GapRuleSmokeTest'   $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\GapRuleSmokeTest.java')))
+# Scattered margin: vanilla wild buildings only beyond N blocks from any city center.
+Run-Step 'ScatteredMarginSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\ScatteredMarginSmokeTest.java')))
+# Force flatten: structure avoidance neutralised so every city chunk is levelled to Y=71.
+Run-Step 'ForceFlattenSmokeTest'    $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\ForceFlattenSmokeTest.java')))
+# Wide road band: multi buildings must not be placed on our widened road band.
+Run-Step 'WideRoadBlockSmokeTest'   $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\WideRoadBlockSmokeTest.java')))
+# City size config: the zone config file's radius (chunks -> blocks) + outer-city share
+# -> outer-city threshold.
+Run-Step 'CitySizeConfigSmokeTest'  $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\CitySizeConfigSmokeTest.java')))
+# Zone normalize: sampling the REAL zone noise and proving the map evens out the shares.
+Run-Step 'ZoneNormalizeSmokeTest'   $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\ZoneNormalizeSmokeTest.java')))
+Run-Step 'InjectSmokeTest'    $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\InjectSmokeTest.java')), $blds, $lcJar, (Join-Path $rt 'inject'))
+# Pack swap: writeTo must never leave a half rebuilt pack, must drop stale files,
+# and must refuse (keeping the OLD pack) when a leftover cannot be cleaned up.
+# 2nd argument audits the REAL generated pack: every part/_top/palette/cell
+# referenced by buildings/*.json and multibuildings/*.json must exist on disk.
+# Must run AFTER StartupSmokeTest, because it audits the pack StartupSmokeTest wrote.
+Run-Step 'PackSwapSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\PackSwapSmokeTest.java')), (Join-Path $rt 'packswap'), $startupSandbox)
+# Building placement statistics: registry contents + id lookup ("ns:id" and bare id
+# hit the same counter) + thread safety + report/export shape. Builds its own temp
+# dir, so it needs no arguments.
+Run-Step 'BuildingStatsSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\BuildingStatsSmokeTest.java')))
+Run-Step 'DataJarSmokeTest'   $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\DataJarSmokeTest.java')), (Join-Path $rt 'datajar'))
+
+if ($bOk) {
+    # The audits take the generated data pack itself, not the sandbox root:
+    #   <sandbox>\config\<buildings folder>\<generated pack>\<inner pack>\
+    $packDir = Get-ChildItem -LiteralPath $startupSandbox -Recurse -Directory -Filter $packName -ErrorAction SilentlyContinue |
+               Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'data') } |
+               Select-Object -First 1
+    $probeRes = Join-Path $root 'build\probe-res'
+    # DecodeAudit loads the real Lost Cities codecs by reflection, so the LC jar
+    # itself has to be on the runtime classpath as well.
+    $cpB = "$classesB;$classesA;$lcJar;$cpReal"
+    if (Test-Path -LiteralPath $probeRes) { $cpB = "$probeRes;$cpB" }
+
+    # FolderRepositorySource scans the CHILD directories of the path it is given,
+    # so the path to register is the pack PARENT (the generated building pack dir), not config\.
+    $packParent = Get-ChildItem -LiteralPath $startupSandbox -Recurse -Directory -Filter $packName -ErrorAction SilentlyContinue |
+                  Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'data') } |
+                  Select-Object -First 1
+    if ($packParent) { $packParent = Split-Path $packParent.FullName -Parent }
+
+    if ($packDir) {
+        Write-Host ""
+        Write-Host "Generated pack: $($packDir.FullName)" -ForegroundColor DarkGray
+        Run-Step 'DecodeAudit' $cpB @((Get-MainClass (Join-Path $root 'tools\DecodeAudit.java')), $packDir.FullName)
+        Run-Step 'RefAudit'    $cpB @((Get-MainClass (Join-Path $root 'tools\RefAudit.java')), $packDir.FullName, $lcJar)
+    } else {
+        Write-Host ""
+        Write-Host "Skipping DecodeAudit / RefAudit: no generated pack found (StartupSmokeTest must succeed first)" -ForegroundColor Yellow
+        $script:failed++
+    }
+
+    if ($packParent) {
+        Run-Step 'RealPackLoaderProbe' $cpB @((Get-MainClass (Join-Path $root 'tools\smoke\RealPackLoaderProbe.java')),
+            $packParent, (Join-Path $root 'build\lc-packs'))
+    } else {
+        Write-Host "Skipping RealPackLoaderProbe: could not locate the pack parent directory" -ForegroundColor Yellow
+        $script:failed++
+    }
+
+    # Needs only the real Lost Cities jar + this mod on the classpath (no generated pack),
+    # so it runs unconditionally here.
+    Run-Step 'ProfileForceProbe' $cpB @((Get-MainClass (Join-Path $root 'tools\smoke\ProfileForceProbe.java')))
+
+    # Pure measurement: it only asserts that the measuring flow ran and that the data is
+    # self-consistent, never "must be faster than X ms".
+    Run-Step 'CityFactorPerfSmokeTest' $cpB @((Get-MainClass (Join-Path $root 'tools\smoke\CityFactorPerfSmokeTest.java')))
+}
+
+Write-Host ""
+$suiteSw.Stop()
+Write-Host ("Run-Step time: {0}s of {1}s total" -f [Math]::Round($script:stepSecs, 1), [Math]::Round($suiteSw.Elapsed.TotalSeconds, 1)) -ForegroundColor DarkGray
+if ($script:failed -eq 0) {
+    Write-Host "ALL OFFLINE TESTS PASSED" -ForegroundColor Green
+    Write-Host "Sandbox: $rt" -ForegroundColor DarkGray
+    exit 0
+} else {
+    Write-Host "$script:failed STEP(S) FAILED" -ForegroundColor Red
+    exit 1
+}
