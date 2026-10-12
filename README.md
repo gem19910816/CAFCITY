@@ -181,13 +181,21 @@ build.bat
 脚本会：编译 → 复制资源 → 打包 → 自动递增 `build_number.properties`，产物只写入 `build/libs/`。
 构建文件不包含测试实例或 `mod保存` 的部署路径；测试和归档由维护者手动复制 jar。
 
-换电脑时复制 `local.properties.example` 为 `local.properties`，填写本机的两个路径即可：
+换电脑时复制 `local.properties.example` 为 `local.properties`，填写本机的三个路径即可：
 
 ```properties
 minecraft_libraries=<实例>/libraries
 java_home=<JDK 21 安装目录>
 lostcities_jar=<失落城市 jar 路径>
+# 可选，留空则自动推导
+minecraft_version_json=<实例版本 JSON，如 .../versions/<实例>/<实例>.json>
 ```
+
+> `build\real-cp.txt`（编译 mixin 源码用的 Minecraft/NeoForge classpath）含本机绝对路径，**不入库**。
+> 缺失时 `build.ps1` 会自动生成：读取实例版本 JSON 的 `libraries[].downloads.artifact.path`
+> （按 `rules` 过滤出 Windows 条目），再补上 `net\minecraft\client\<版本>-*-srg.jar`。
+> 实例定位顺序：`minecraft_version_json` → 由 `lostcities_jar` 推导 → 扫描 `versions\` 找 NeoForge 配置。
+> 若 `lostcities_jar` 指向的文件被改名（启动器常给 jar 加中文前缀），脚本会在同目录回退到最新的 `*lostcities*.jar`。
 
 > 仓库里同时保留了标准的 Gradle 工程（`build.gradle` / `settings.gradle` / `gradle.properties`），
 > 供以后需要走标准工具链时使用；但 NeoGradle 7.0.171 要求 Gradle ≥ 8.10，而 `通用\` 里只有 8.8。

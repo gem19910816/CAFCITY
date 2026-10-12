@@ -1,5 +1,22 @@
 # Copy this file to local.properties for a local build.
 # Keep local.properties out of source control: all paths are machine-specific.
+#
+# Required:
+#   minecraft_libraries     the launcher's libraries folder, e.g.
+#                           .../.minecraft/libraries
+#   java_home               a JDK 21 home, e.g. .../jdk-21.0.3
+#   lostcities_jar          the Lost Cities mod jar, e.g.
+#                           .../.minecraft/versions/<instance>/mods/lostcities-*.jar
+#
+# Optional:
+#   minecraft_version_json  the instance version JSON the launcher uses, e.g.
+#                           .../.minecraft/versions/<instance>/<instance>.json
+#                           Leave empty to auto-detect it (from lostcities_jar,
+#                           otherwise by scanning versions/ for a NeoForge profile).
+#
+# build\real-cp.txt (the Minecraft/NeoForge compile classpath) is machine
+# specific and is NOT committed: build.ps1 regenerates it when it is missing.
 minecraft_libraries=
 java_home=
 lostcities_jar=
+minecraft_version_json=

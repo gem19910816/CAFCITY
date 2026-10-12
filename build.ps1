@@ -41,6 +41,107 @@ function Fail([string]$msg) {
     exit 1
 }
 
+# Standard Minecraft library rule evaluation: default deny, last matching rule wins.
+function Test-LibraryRules($rules) {
+    if (-not $rules) { return $true }
+    $allowed = $false
+    foreach ($r in $rules) {
+        $match = $true
+        if ($r.os) {
+            if ($r.os.name -and $r.os.name -ne 'windows') { $match = $false }
+            if ($r.os.arch -and $r.os.arch -ne 'x86_64')  { $match = $false }
+        }
+        if ($match) { $allowed = ($r.action -eq 'allow') }
+    }
+    return $allowed
+}
+
+# Locate the instance version JSON (the file the launcher uses to assemble the
+# runtime classpath). Tried in order: explicit override in local.properties,
+# the instance derived from lostcities_jar, then a scan for a NeoForge profile.
+function Find-VersionJson([string]$Libs, $Local, [string]$InstanceDir) {
+    $explicit = $Local['minecraft_version_json']
+    if ($explicit -and (Test-Path -LiteralPath $explicit)) { return $explicit }
+
+    # Prefer the instance of the resolved Lost Cities jar, else the configured path.
+    $inst = $InstanceDir
+    if (-not $inst) {
+        $lc = $Local['lostcities_jar']
+        if ($lc) { $inst = [System.IO.Path]::GetDirectoryName([System.IO.Path]::GetDirectoryName($lc)) }
+    }
+    if ($inst -and (Test-Path -LiteralPath $inst)) {
+        $named = Join-Path $inst ([System.IO.Path]::GetFileName($inst) + '.json')
+        if (Test-Path -LiteralPath $named) { return $named }
+        $any = Get-ChildItem -LiteralPath $inst -Filter *.json -File -ErrorAction SilentlyContinue |
+               Select-Object -First 1
+        if ($any) { return $any.FullName }
+    }
+
+    $vers = Join-Path ([System.IO.Path]::GetDirectoryName($Libs)) 'versions'
+    if (Test-Path -LiteralPath $vers) {
+        $cands = Get-ChildItem -LiteralPath $vers -Recurse -Filter *.json -File -ErrorAction SilentlyContinue |
+                 Sort-Object LastWriteTime -Descending
+        foreach ($c in $cands) {
+            $raw = Get-Content -LiteralPath $c.FullName -Raw -ErrorAction SilentlyContinue
+            if ($raw -and $raw -match 'net\.neoforged' -and $raw -match 'net\.minecraft') { return $c.FullName }
+        }
+    }
+    return $null
+}
+
+# Build build\real-cp.txt: the real Minecraft/NeoForge classpath that the mixin
+# sources compile against. It holds absolute jar paths, so it is machine
+# specific and never committed - it is regenerated here when missing.
+function New-RealClasspathFile([string]$OutFile, [string]$Libs, $Local, [string]$McVersion, [string]$InstanceDir) {
+    $json = Find-VersionJson -Libs $Libs -Local $Local -InstanceDir $InstanceDir
+    if (-not $json) {
+        Fail "Cannot locate the instance version JSON. Set 'minecraft_version_json' in local.properties."
+    }
+    Write-Host "Version JSON : $json" -ForegroundColor DarkGray
+
+    $o = Get-Content -LiteralPath $json -Raw -Encoding UTF8 | ConvertFrom-Json
+    $items = New-Object System.Collections.Generic.List[string]
+    $seen = @{}
+    foreach ($l in $o.libraries) {
+        if (-not (Test-LibraryRules $l.rules)) { continue }
+        $rel = $null
+        if ($l.downloads -and $l.downloads.artifact -and $l.downloads.artifact.path) {
+            $rel = $l.downloads.artifact.path
+        } elseif ($l.name) {
+            $p = $l.name -split ':'
+            if ($p.Count -ge 3) {
+                $rel = (($p[0] -replace '\.', '/') + '/' + $p[1] + '/' + $p[2] + '/' + $p[1] + '-' + $p[2] + '.jar')
+            }
+        }
+        if (-not $rel) { continue }
+        $full = Join-Path $Libs ($rel -replace '/', '\')
+        if (-not (Test-Path -LiteralPath $full)) { continue }
+        if ($seen.ContainsKey($full)) { continue }
+        $seen[$full] = $true
+        $items.Add($full) | Out-Null
+    }
+
+    # The SRG-named client jar supplies net.minecraft.* to the mixin sources.
+    $clientDir = Join-Path $Libs 'net\minecraft\client'
+    if (Test-Path -LiteralPath $clientDir) {
+        $jars = @(Get-ChildItem -LiteralPath $clientDir -Recurse -Filter '*-srg.jar' -File -ErrorAction SilentlyContinue)
+        if ($McVersion) {
+            $pref = @($jars | Where-Object { $_.Name -like "client-$McVersion-*" })
+            if ($pref.Count -gt 0) { $jars = $pref }
+        }
+        $pick = $jars | Sort-Object FullName | Select-Object -Last 1
+        if ($pick -and -not $seen.ContainsKey($pick.FullName)) { $items.Add($pick.FullName) | Out-Null }
+    }
+
+    if ($items.Count -eq 0) {
+        Fail "Generated classpath is empty - check 'minecraft_libraries' and the version JSON."
+    }
+
+    New-Item -ItemType Directory -Force -Path ([System.IO.Path]::GetDirectoryName($OutFile)) | Out-Null
+    [System.IO.File]::WriteAllText($OutFile, (($items -join ';') + ';'), (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host "Generated build\real-cp.txt with $($items.Count) jar(s)." -ForegroundColor Green
+}
+
 $local = Read-Props (Join-Path $root 'local.properties')
 
 # ---- JDK ----
@@ -113,16 +214,37 @@ if ($mixinFiles.Count -gt 0) {
     if (-not $mixinJar) { Fail "Mixin sources found but no mixin-*.jar under $libs\org\spongepowered\mixin" }
 
     # Lost Cities jar is a local compile-time input, never a deployment target.
+    # If the configured path is stale, fall back to the newest *lostcities*.jar
+    # sitting in the same folder (launchers often rename jars with a CN prefix).
     $lcJar = $local['lostcities_jar']
     if (-not $lcJar -or -not (Test-Path -LiteralPath $lcJar)) {
-        Fail "Mixin sources found but lostcities_jar is missing in local.properties"
+        if ($lcJar) {
+            $modsDir = [System.IO.Path]::GetDirectoryName($lcJar)
+            if ($modsDir -and (Test-Path -LiteralPath $modsDir)) {
+                $found = Get-ChildItem -LiteralPath $modsDir -Filter '*lostcities*.jar' -File -ErrorAction SilentlyContinue |
+                         Sort-Object LastWriteTime -Descending | Select-Object -First 1
+                if ($found) {
+                    Write-Host "lostcities_jar not found - using $($found.Name)" -ForegroundColor Yellow
+                    $lcJar = $found.FullName
+                }
+            }
+        }
+        if (-not $lcJar -or -not (Test-Path -LiteralPath $lcJar)) {
+            Fail "Mixin sources found but lostcities_jar is missing in local.properties"
+        }
     }
 
     $realCpFile = Join-Path $root 'build\real-cp.txt'
     if (-not (Test-Path -LiteralPath $realCpFile)) {
-        Fail "Mixin sources found but build\real-cp.txt is missing (see tools\run-offline-tests.ps1 for how it is generated)."
+        Write-Host "build\real-cp.txt not found - generating it from the instance ..." -ForegroundColor Yellow
+        $gradleProps = Read-Props (Join-Path $root 'gradle.properties')
+        $instanceDir = [System.IO.Path]::GetDirectoryName([System.IO.Path]::GetDirectoryName($lcJar))
+        New-RealClasspathFile -OutFile $realCpFile -Libs $libs -Local $local -McVersion $gradleProps['minecraft_version'] -InstanceDir $instanceDir
+        if (-not (Test-Path -LiteralPath $realCpFile)) {
+            Fail "Could not generate build\real-cp.txt."
+        }
     }
-    $realCp = (Get-Content -LiteralPath $realCpFile -Raw).Trim()
+    $realCp = (Get-Content -LiteralPath $realCpFile -Raw -Encoding UTF8).Trim()
     $cpMixin = @($cp, $mixinJar, $lcJar, $realCp, $classes) -join ';'
 
     Write-Host "Compiling $($mixinFiles.Count) mixin file(s)..." -ForegroundColor Cyan
