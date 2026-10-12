@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 野外建筑离城市距离配置 —— 「野外原版建筑只在城市 N 格以外生成」。
  *
- * <p>配置文件: {@code config/失落城市建筑/野外建筑离城市距离.json}。
+ * <p>配置文件: {@code config/CAF失落城市配置/野外建筑离城市距离.json}。
  * 失落城市原版会在<b>非城市区块</b>随机放 5 种野外建筑(radiotower 无线电塔 /
  * cabin 小木屋 / oilrig 钻井平台 / highway_gas_station 加油站 / highway_restaurant 公路餐厅),
  * 它们可能刷在紧贴城市边缘的地方。打开本功能后, 离任何一座城市的城心
@@ -64,7 +64,7 @@ public final class ScatteredMarginConfig {
     /**
      * 读取配置并写进运行时取值; 任何出错都回落到内置默认值并记警告, 绝不抛异常。
      *
-     * @param configDir {@code config/失落城市建筑} 目录; 传 null = 跳过文件读写, 用内置默认值
+     * @param configDir {@code config/CAF失落城市配置} 目录; 传 null = 跳过文件读写, 用内置默认值
      * @param warnings  警告信息(记日志用)
      * @return 最终生效值
      */

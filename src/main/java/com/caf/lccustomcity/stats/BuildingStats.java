@@ -58,14 +58,14 @@ import java.util.concurrent.atomic.LongAdder;
  *       + 一个 JVM 关闭钩子(兜底, 关游戏一定写);</li>
  *   <li>游戏里敲 {@code /cafbuildstats}: {@code mixin/BuildStatsCommandMixin}。</li>
  * </ul>
- * 输出文件: {@code config/失落城市建筑/建筑生成统计.txt}(UTF-8)。
+ * 输出文件: {@code config/CAF失落城市配置/建筑生成统计.txt}(UTF-8)。
  *
  * <p>本类<b>不引用任何 Minecraft / NeoForge 类</b>, 所以能被离线冒烟测试直接跑
  * (见 {@code tools/smoke/BuildingStatsSmokeTest.java})。
  */
 public final class BuildingStats {
 
-    /** 统计文件名(写在 config/失落城市建筑/ 下)。 */
+    /** 统计文件名(写在 config/CAF失落城市配置/ 下)。 */
     public static final String FILE_NAME = "建筑生成统计.txt";
 
     /** 本模组的资产命名空间前缀 —— 失落城市挑建筑返回的字符串带这个前缀, 登记表里存的是不带前缀的 id。 */
@@ -165,7 +165,7 @@ public final class BuildingStats {
      * 分组结果: 内城单格/多格、外城单格/多格, 以及内城的"子分区 -> 建筑"表。
      * 没进过子分区表的建筑(直接放在 {@code 内城\} 下的)归到城区本身。
      *
-     * @param configDir 统计文件的输出目录(即 config/失落城市建筑/); null = 只统计不导出
+     * @param configDir 统计文件的输出目录(即 config/CAF失落城市配置/); null = 只统计不导出
      * @param out       转换结果; null = 登记表为空
      */
     public static void install(Path configDir, LcAssetGenerator.Output out) {

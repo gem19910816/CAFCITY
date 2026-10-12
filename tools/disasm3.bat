@@ -3,8 +3,9 @@ REM Dump real Minecraft 1.21.1 classes from the SRG client jar.
 REM The patch jar (neoforge-*-client.jar) does NOT contain these classes,
 REM so this uses the full SRG-mapped client jar instead.
 REM NOTE: keep this file pure ASCII (BOM-less .bat read as GBK by cmd).
-set JAVAP=E:\Minecraft\jave\jdk-21_windows-x64_bin\jdk-21.0.3\bin\javap.exe
-set JAR=E:\Minecraft\PCL2\.minecraft\libraries\net\minecraft\client\1.21.1-20240808.144430\client-1.21.1-20240808.144430-srg.jar
+set "JAVAP=%CAF_JDK%\bin\javap.exe"
+set "JAR=%CAF_MINECRAFT_CLIENT%"
+if "%CAF_JDK%"=="" echo Set CAF_JDK and CAF_MINECRAFT_CLIENT first.& exit /b 2
 set OUT=build\disasm-srg
 if not exist "%OUT%" mkdir "%OUT%"
 

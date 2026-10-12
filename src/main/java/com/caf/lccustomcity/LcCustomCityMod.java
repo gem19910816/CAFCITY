@@ -1,7 +1,6 @@
 package com.caf.lccustomcity;
 
 import com.caf.lccustomcity.config.BlockEntityContentConfig;
-import com.caf.lccustomcity.config.BridgeStyleConfig;
 import com.caf.lccustomcity.config.BuildingCountLimits;
 import com.caf.lccustomcity.config.CityGenConfig;
 import com.caf.lccustomcity.config.DynamicStructureConfig;
@@ -11,10 +10,8 @@ import com.caf.lccustomcity.config.GapConfig;
 import com.caf.lccustomcity.config.HighwayStyleConfig;
 import com.caf.lccustomcity.config.ScatteredMarginConfig;
 import com.caf.lccustomcity.config.SpawnCityConfig;
-import com.caf.lccustomcity.config.WideRoadBlockConfig;
 import com.caf.lccustomcity.config.ZoneConfig;
 import com.caf.lccustomcity.config.ZoneWeights;
-import com.caf.lccustomcity.convert.BridgeStyleGenerator;
 import com.caf.lccustomcity.convert.CityStylePatcher;
 import com.caf.lccustomcity.convert.HighwayStyleGenerator;
 import com.caf.lccustomcity.convert.LcAssetGenerator;
@@ -61,10 +58,10 @@ import java.util.zip.ZipOutputStream;
  *
  * <p>流程(在模组构造阶段执行, 此时数据包尚未加载):
  * <ol>
- *   <li>扫描 {@code <实例>/config/失落城市建筑/} 下的整栋建筑文件</li>
+ *   <li>扫描 {@code <实例>/config/CAF失落城市配置/} 下的整栋建筑文件</li>
  *   <li>转换成失落城市的 part / palette / building / multibuilding 资产</li>
  *   <li>读出失落城市 jar 里自带的 citystyle, 只替换建筑列表, 其余原样保留</li>
- *   <li>写出 {@code config/失落城市建筑/生成的建筑包/caf_lc_customcity/} (可直接查看)</li>
+ *   <li>写出 {@code config/CAF失落城市配置/生成的建筑包/caf_lc_customcity/} (可直接查看)</li>
  *   <li><b>注册 {@code AddPackFindersEvent}, 把上面这个数据包在本次启动就塞进数据包栈</b>
  *       (见 {@link PackFinderBridge}; 它是运行时按类名反射的, 因为编译期看不到 Minecraft 的类)</li>
  *   <li>兜底: 同时打包成 {@code mods/CAF-LC-建筑包-<编号>-<哈希>.jar} 并声明
@@ -82,9 +79,9 @@ public class LcCustomCityMod {
     public static final String MODID = "caf_lc_customcity";
     public static final Logger LOGGER = LoggerFactory.getLogger("CAF-LC");
 
-    public static final String BUILDING_DIR_NAME = "失落城市建筑";
+    public static final String BUILDING_DIR_NAME = "CAF失落城市配置";
     /**
-     * 生成的数据包所在的<b>父</b>目录(相对 config/失落城市建筑/)。
+     * 生成的数据包所在的<b>父</b>目录(相对 config/CAF失落城市配置/)。
      *
      * <p>原版的 {@code FolderRepositorySource} 会把传进去的目录下面每个子目录当成一个数据包,
      * 所以这里要留一层, 真正的包在 {@link #INNER_PACK_NAME} 里。
@@ -245,15 +242,6 @@ public class LcCustomCityMod {
         highwayWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
         LOGGER.info("[CAF-LC] 高速路使用城市空地铺面: {}", highwayStyle);
 
-        // 桥梁风格开关(把跨水街道桥的桥面/分隔线/矮墙换成我们的路面方块)。
-        // 和高速路那个开关分开: 两者改的是不同的调色板、副作用也不同(见 BridgeStyleConfig 的类注释)。
-        // 转换数据包时 BridgeStyleGenerator 读。必须在下面 isEmpty() 提前返回之前读 ——
-        // 读配置不依赖有没有建筑文件。
-        List<String> bridgeWarnings = new ArrayList<>();
-        boolean bridgeStyle = BridgeStyleConfig.load(configDir, bridgeWarnings);
-        bridgeWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
-        LOGGER.info("[CAF-LC] LC 8.3.9: bridge reskinning disabled.");
-
         // 野外建筑离城市距离(野外原版建筑只在城市 N 格以外生成): 装进运行时取值,
         // ScatteredMarginMixin 判定候选区块时读。必须在下面 isEmpty() 提前返回之前读 ——
         // 读配置不依赖有没有建筑文件。
@@ -270,14 +258,6 @@ public class LcCustomCityMod {
         flattenWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
         LOGGER.info("[CAF-LC] 城市范围内一律削平: {}", forceFlatten
                 ? "开(城市补实地基，停止放置相交的原版地表结构)" : "关(恢复失落城市原生结构回避)");
-
-        // 建筑不压宽路开关(多格建筑不许放进宽路带): 装进运行时开关,
-        // MultiChunkGapMixin 放置多格建筑时读。必须在下面 isEmpty() 提前返回之前读 ——
-        // 读配置不依赖有没有建筑文件。
-        List<String> roadBlockWarnings = new ArrayList<>();
-        boolean roadBlock = WideRoadBlockConfig.load(configDir, roadBlockWarnings);
-        roadBlockWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
-        LOGGER.info("[CAF-LC] LC 8.3.9: no wide-road bands; building spacing is two vacant chunks.");
 
         // 建筑自带的箱子内容 vs 失落城市战利品池(阶段 1 新增): 转换数据包时 LcAssetGenerator 读。
         // 失落城市的生成顺序是 loot > mob > tag ⇒ 同一个字符不能既挂战利品又带建筑自带的
@@ -559,7 +539,7 @@ public class LcCustomCityMod {
                 displayName="%s"
                 description='''
                 由 CAF失落城市自定义城市附属 自动生成的数据包, 请勿手动修改。
-                内容来自 config/失落城市建筑/ 下的建筑文件, 每次启动游戏时重新生成。
+                内容来自 config/CAF失落城市配置/ 下的建筑文件, 每次启动游戏时重新生成。
                 '''
 
                 [[dependencies.%s]]
@@ -836,7 +816,7 @@ public class LcCustomCityMod {
      * 同上, 但会跳过 {@code ignore} 名单里的存档(名字按小写比较)。
      *
      * <p>名单的用途: 拿来提取建筑的源地图不想被改动, 就把它写进
-     * {@code config/失落城市建筑/不注入的存档.txt}。
+     * {@code config/CAF失落城市配置/不注入的存档.txt}。
      */
     public static int injectIntoWorlds(Path savesDir, LcAssetGenerator.Output out, String hash,
                                        Set<String> ignore) {
@@ -1157,7 +1137,7 @@ public class LcCustomCityMod {
      * 看起来就像"方块大量丢失"。既然本模组的目标是"只生成我自己的建筑",
      * 就不该让这个选择影响结果 —— 不管选哪个档, 都由本模组统一覆盖。
      *
-     * <p><b>取值</b>: 从 {@code config/失落城市建筑/城市生成配置.json} 读(见 {@link CityGenConfig}),
+     * <p><b>取值</b>: 从 {@code config/CAF失落城市配置/城市生成配置.json} 读(见 {@link CityGenConfig}),
      * 读不到/出错就回退到 {@link #FORCED_PROFILE_VALUES} 的内置默认值。
      *
      * <p><b>做法</b>: 直接改内存里 {@code ProfileSetup.STANDARD_PROFILES} 里的那些对象。
@@ -1184,7 +1164,7 @@ public class LcCustomCityMod {
     }
 
     /**
-     * 同上, 但显式指定 {@code config/失落城市建筑} 目录(离线测试用)。
+     * 同上, 但显式指定 {@code config/CAF失落城市配置} 目录(离线测试用)。
      *
      * @param configDir 配置目录; 传 null = 跳过文件读写, 全部用内置默认值
      */
@@ -1408,7 +1388,7 @@ public class LcCustomCityMod {
                - //copy                把选区抄进剪贴板
                - //schem save 名字      存成图纸。这个名字就是游戏里的建筑 id
                - 图纸会存到 config\\worldedit\\schematics\\ 里。
-                 把它【手动复制】到 失落城市建筑\\ 下的对应文件夹里, 重启游戏就生效。
+                 把它【手动复制】到 CAF失落城市配置\\ 下的对应文件夹里, 重启游戏就生效。
                - 框选要点: 【选区最底下那格, 就是建筑的一楼地板】。
                  不要把地面、草皮、野树框进去; 建筑自己的后花园和观赏树可以框,
                  但花园的地面要先用 //fill 压平到同一个高度。
@@ -1419,15 +1399,15 @@ public class LcCustomCityMod {
                - 【扫描不限深度】: 放在本目录下、还是套几层文件夹, 都能扫到
                  (旧版本只认两层, 更深的会被【静默忽略】且不报警 —— 现在已经不会了)
                - 推荐结构(三层):
-                    config\\失落城市建筑\\内城\\住宅区\\小楼.schem
-                    config\\失落城市建筑\\外城\\民房\\平房.schem
+                    config\\CAF失落城市配置\\内城\\住宅区\\小楼.schem
+                    config\\CAF失落城市配置\\外城\\民房\\平房.schem
                - 城区只有两个: 内城 / 外城。放在 外城\\ 下面的算外城, 其余(含直接放根目录)都算内城
                - “子分区”文件夹要放在 内城\\ 或 外城\\ 下面(第一层), 用来分区/配占比;
                  再往下套文件夹也可以, 子分区仍按那一层算
                - 一个文件 = 一栋建筑。导出时请只框住建筑本身, 不要带周围的地面和树
                - 同目录里放 说明.txt / 图片 / 压缩包都没关系, 会被自动忽略
                  (只认 .schem / .nbt, 其它后缀一律忽略)
-               - 每次启动都会写一份 config\\失落城市建筑\\建筑扫描报告.txt:
+               - 每次启动都会写一份 config\\CAF失落城市配置\\建筑扫描报告.txt:
                  扫到多少栋、按 内城/外城 和子分区分别是多少、忽略了哪些文件及其路径。
                  建筑没生效时先看这个文件
 
@@ -1461,7 +1441,7 @@ public class LcCustomCityMod {
                - 桥梁/楼梯/喷泉/铁路地牢等街道设施保持原样。
 
             8) 生成的东西在哪
-               - config\\失落城市建筑\\生成的建筑包\\caf_lc_customcity\\ = 自动生成的数据包, 可以打开检查
+               - config\\CAF失落城市配置\\生成的建筑包\\caf_lc_customcity\\ = 自动生成的数据包, 可以打开检查
                - 它通过 AddPackFindersEvent 直接进数据包栈, 所以【本次进游戏就生效】
                - mods\\CAF-LC-建筑包-XXXX-XXXXXXXX.jar = 兜底(万一上面那条路没走通)
                - 每个存档的 saves\\<存档>\\datapacks\\caf_lc_customcity\\ = 双保险

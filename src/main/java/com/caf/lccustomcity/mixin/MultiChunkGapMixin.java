@@ -16,8 +16,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * 多格建筑放置的<b>前置否决</b>(性能修复版): 「大楼之间留一格空隙」+「建筑不能压到宽路上」
- * +「建筑数量上限」。
+ * 多格建筑放置的<b>前置否决</b>(性能修复版): 「大楼之间留一格空隙」+
+ * 「建筑数量上限」。
  *
  * <h2>为什么从 RETURN 改成 HEAD(卡顿事故的关键整改)</h2>
  * 原来挂在 {@code canPlaceBuilding} 的 RETURN 上: 失落城市原生已经把整个占地
@@ -35,13 +35,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * <ol>
  *   <li>数量上限({@link MultiQuotaGate}): 一次 Map 查表 + 一次哈希;</li>
  *   <li>大楼之间留一格空隙({@link MultiGapRule}): 只读占地外圈一环的 buildingGrid;</li>
- *   <li>建筑不能压到宽路带上({@link WideRoadBlockRule}): 按占地格查路网规划。</li>
  * </ol>
  *
  * <h2>开关</h2>
- * {@code config/失落城市建筑/多格建筑间距.json} 里的「大楼之间强制留一格空隙」默认 true;
- * {@code config/失落城市建筑/建筑不压马路.json} 里的「建筑不能压到宽路上」默认 true;
- * 数量上限来自 {@code config/失落城市建筑/建筑物数量.json}(见 {@code BuildingCountLimits})。
+ * {@code config/CAF失落城市配置/多格建筑间距.json} 里的「大楼之间强制留一格空隙」默认 true;
+ * 数量上限来自 {@code config/CAF失落城市配置/建筑物数量.json}(见 {@code BuildingCountLimits})。
  *
  * <h2>确定性 / 兜底</h2>
  * 只读已放下的格子(calculateBuildings 单线程顺序放置), 不碰随机数, 结果确定。

@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 解析 {@code config/失落城市建筑/城区配置.json}(城市 → 城区 → 分区 → 建筑 嵌套)。
+ * 解析 {@code config/CAF失落城市配置/城区配置.json}(城市 → 城区 → 分区 → 建筑 嵌套)。
  *
  * <h2>容错原则(需求文档阶段 4 提前到这里做)</h2>
  * <ul>

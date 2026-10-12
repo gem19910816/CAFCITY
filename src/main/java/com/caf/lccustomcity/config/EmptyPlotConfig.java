@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 地皮填充配置 —— 「空地也要放建筑」开关(默认开)。
  *
- * <p>配置文件: {@code config/失落城市建筑/地皮填充.json}。
+ * <p>配置文件: {@code config/CAF失落城市配置/地皮填充.json}。
  * 打开时(默认), 单格(1x1)地皮只要<b>不在</b>道路 / 预定义街道 / 公路净空 / 铁路净空 上,
  * 就不再被"建筑几率掷骰"挡掉, 强制放上建筑 —— 也就是消除城里那些莫名其妙的小空地。
  * 街区内的大楼(多格建筑)本规则完全不管。
@@ -66,7 +66,7 @@ public final class EmptyPlotConfig {
     /**
      * 读取配置并写进运行时开关; 任何出错都回落到内置默认值(开)并记警告, 绝不抛异常。
      *
-     * @param configDir {@code config/失落城市建筑} 目录; 传 null = 跳过文件读写, 用内置默认值
+     * @param configDir {@code config/CAF失落城市配置} 目录; 传 null = 跳过文件读写, 用内置默认值
      * @param warnings  警告信息(记日志用)
      * @return 最终生效值
      */

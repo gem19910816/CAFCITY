@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 「建筑自带的箱子内容」开关(默认开)。
  *
- * <p>配置文件: {@code config/失落城市建筑/建筑自带箱子内容.json}。
+ * <p>配置文件: {@code config/CAF失落城市配置/建筑自带箱子内容.json}。
  *
  * <h2>这个开关在解决什么冲突</h2>
  * 失落城市生成方块实体时, 优先级是 <b>{@code loot} &gt; {@code mob} &gt; {@code tag}</b>
@@ -71,7 +71,7 @@ public final class BlockEntityContentConfig {
     /**
      * 读取配置并写进运行时开关; 任何出错都回落到内置默认值(开)并记警告, 绝不抛异常。
      *
-     * @param configDir {@code config/失落城市建筑} 目录; 传 null = 跳过文件读写, 用内置默认值
+     * @param configDir {@code config/CAF失落城市配置} 目录; 传 null = 跳过文件读写, 用内置默认值
      * @param warnings  警告信息(记日志用)
      * @return 最终生效值
      */

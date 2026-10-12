@@ -7,7 +7,7 @@
 # NOTE: this file is intentionally ASCII-only. Windows PowerShell 5.1 reads
 #       BOM-less files as ANSI/GBK, which would corrupt non-ASCII text.
 #
-# Usage: double-click build.bat, or run .\build.ps1 from PowerShell.
+# Usage: run .\build.ps1. The script only creates build\libs\ artifacts.
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
@@ -112,15 +112,11 @@ if ($mixinFiles.Count -gt 0) {
     $mixinJar = Find-Newest (Join-Path $libs 'org\spongepowered\mixin') 'mixin-*.jar'
     if (-not $mixinJar) { Fail "Mixin sources found but no mixin-*.jar under $libs\org\spongepowered\mixin" }
 
-    # Lost Cities jar: scan the instance mods folder (derived from deploy_mods).
-    $lcJar = $null
-    $instance = $null
-    if ($local['deploy_mods']) { $instance = Split-Path $local['deploy_mods'] -Parent }
-    if ($instance -and (Test-Path -LiteralPath (Join-Path $instance 'mods'))) {
-        $lcJar = (Get-ChildItem -LiteralPath (Join-Path $instance 'mods') -Filter '*lostcities*.jar' -File -ErrorAction SilentlyContinue |
-                  Select-Object -First 1).FullName
+    # Lost Cities jar is a local compile-time input, never a deployment target.
+    $lcJar = $local['lostcities_jar']
+    if (-not $lcJar -or -not (Test-Path -LiteralPath $lcJar)) {
+        Fail "Mixin sources found but lostcities_jar is missing in local.properties"
     }
-    if (-not $lcJar) { Fail "Mixin sources found but no *lostcities*.jar under $instance\mods (set deploy_mods in local.properties)" }
 
     $realCpFile = Join-Path $root 'build\real-cp.txt'
     if (-not (Test-Path -LiteralPath $realCpFile)) {
@@ -170,19 +166,6 @@ $sizeKB = [math]::Round((Get-Item -LiteralPath $outJar).Length / 1KB, 1)
 Write-Host ""
 Write-Host "BUILD OK: build\libs\$jarName  ($sizeKB KB)" -ForegroundColor Green
 
-# ---- deploy ----
-$deploy = $local['deploy_mods']
-if ($deploy) {
-    if (Test-Path -LiteralPath $deploy) {
-        Get-ChildItem -LiteralPath $deploy -Filter 'caf_lc_customcity-*.jar' -File -ErrorAction SilentlyContinue |
-            ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
-        Copy-Item -LiteralPath $outJar -Destination (Join-Path $deploy $jarName) -Force
-        Write-Host "Installed to: $deploy" -ForegroundColor Green
-    } else {
-        Write-Host "NOTE: deploy folder does not exist, skipped -> $deploy" -ForegroundColor DarkYellow
-    }
-}
-
 Write-Host ""
-Write-Host "Next: put building files into <instance>\config\<buildings folder>, then start the game." -ForegroundColor Cyan
+Write-Host "Next: put building files into <instance>\config\CAF失落城市配置, then start the game." -ForegroundColor Cyan
 exit 0

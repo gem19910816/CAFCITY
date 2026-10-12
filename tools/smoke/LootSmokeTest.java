@@ -50,7 +50,7 @@ public class LootSmokeTest {
         // ============================================================
         // A. 正常路径: 分区池 + 单建筑覆盖 + 无池分区
         // ============================================================
-        Path cfg = sandbox.resolve("a/失落城市建筑");
+        Path cfg = sandbox.resolve("a/CAF失落城市配置");
         Files.createDirectories(cfg.resolve("内城/商业区"));
         Files.createDirectories(cfg.resolve("内城/住宅区"));
         Files.createDirectories(cfg.resolve("外城/民房"));
@@ -210,7 +210,7 @@ public class LootSmokeTest {
         // ============================================================
         // B. 配置文件缺失 -> 自动生成模板, 不挂 loot
         // ============================================================
-        Path cfgB = sandbox.resolve("b/失落城市建筑");
+        Path cfgB = sandbox.resolve("b/CAF失落城市配置");
         Files.createDirectories(cfgB);
         writeSchem(cfgB.resolve("默认.schem"), Map.of(
                 "minecraft:stone", new int[]{0, 0, 0, 3, 0, 3},
@@ -223,7 +223,7 @@ public class LootSmokeTest {
         // ============================================================
         // C. 配置文件语法坏 -> 警告 + 默认, 不崩
         // ============================================================
-        Path cfgC = sandbox.resolve("c/失落城市建筑");
+        Path cfgC = sandbox.resolve("c/CAF失落城市配置");
         Files.createDirectories(cfgC);
         Files.writeString(cfgC.resolve("城区配置.json"), "{ 这不是合法 JSON ,,,", StandardCharsets.UTF_8);
         writeSchem(cfgC.resolve("默认.schem"), Map.of(

@@ -7,9 +7,6 @@ import net.minecraft.world.level.block.LeavesBlock;
 
 public final class VacantVegetationPlacer {
     private VacantVegetationPlacer() {}
-    public static void place(ChunkDriver driver,BuildingInfo info,long seed) {
-        place(driver,info,seed,false);
-    }
     public static void place(ChunkDriver driver,BuildingInfo info,long seed,boolean frontage) {
         int cx=info.coord.chunkX(),cz=info.coord.chunkZ(),ground=info.getCityGroundLevel();
         var leaves=Blocks.OAK_LEAVES.defaultBlockState().setValue(LeavesBlock.PERSISTENT,true);

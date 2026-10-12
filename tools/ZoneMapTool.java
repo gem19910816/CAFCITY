@@ -35,7 +35,7 @@ import java.util.TreeMap;
  * <p>注意: 失落城市自己的"是否城市 / 内城还是外城"判定(factor 阈值)不在本工具范围内,
  * 图画的是<b>凡是被判定为内城的区块</b>会被分到哪个分区; 外城/非城市由失落城市决定。
  *
- * <p>用法: java ZoneMapTool &lt;存档目录&gt; &lt;config/失落城市建筑 目录&gt; &lt;输出png&gt; [中心方块X 中心方块Z]
+ * <p>用法: java ZoneMapTool &lt;存档目录&gt; &lt;config/CAF失落城市配置 目录&gt; &lt;输出png&gt; [中心方块X 中心方块Z]
  */
 public class ZoneMapTool {
 

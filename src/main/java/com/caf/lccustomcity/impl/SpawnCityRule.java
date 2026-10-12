@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 类只能作为 Mixin 加载, 不能被普通引用)。所以它放在 impl 包。
  *
  * <h2>干什么</h2>
- * 配置见 {@code config/失落城市建筑/出生点附近城市.json}(键: 出生点城市中心距离, 默认 850)。
+ * 配置见 {@code config/CAF失落城市配置/出生点附近城市.json}(键: 出生点城市中心距离, 默认 850)。
  * 对主世界来说: 先看出生点 N 格以内<b>本来</b>有没有一座城的<b>城心</b>
  * —— 有就什么都不做(绝不动既有的城市分布); 没有就按 {@link SpawnCityPlan#planGeometry}
  * 定一座"合成城市", 让它的<b>城心</b>落在距出生点约 N 格处(判定与摆放同一个口径),

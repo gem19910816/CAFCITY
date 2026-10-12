@@ -2,8 +2,9 @@
 REM Check whether the srg client jar is Mojmap-named (method names, not SRG).
 REM NeoForge 1.21 uses Mojang mappings at runtime, so this should hold.
 REM NOTE: keep this file pure ASCII (BOM-less .bat read as GBK by cmd).
-set JAVAP=E:\Minecraft\jave\jdk-21_windows-x64_bin\jdk-21.0.3\bin\javap.exe
-set JAR=E:\Minecraft\PCL2\.minecraft\libraries\net\minecraft\client\1.21.1-20240808.144430\client-1.21.1-20240808.144430-srg.jar
+set "JAVAP=%CAF_JDK%\bin\javap.exe"
+set "JAR=%CAF_MINECRAFT_CLIENT%"
+if "%CAF_JDK%"=="" echo Set CAF_JDK and CAF_MINECRAFT_CLIENT first.& exit /b 2
 set OUT=build\disasm-srg
 if not exist "%OUT%" mkdir "%OUT%"
 

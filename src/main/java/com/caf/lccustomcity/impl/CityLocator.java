@@ -284,7 +284,7 @@ public final class CityLocator {
     /**
      * 把"这个区块是不是内城"映射成三态分区号。
      *
-     * <p>是不是内城由 {@code WideRoadLogic.isInnerCity} 判(和宽路系统同一套判据:
+     * <p>是不是内城由城市布局判据决定:
      * 区块的城市风格名 == {@code CITY_STYLE_ALTERNATIVE} ⇒ 外城), 这里只做 null 归并 ——
      * 拿不到就说"未知", 绝不猜。
      *

@@ -140,7 +140,7 @@ $srcAll = @(Get-ChildItem -LiteralPath (Join-Path $root 'src\main\java') -Recurs
 $src = @($srcAll | Where-Object { -not $_.StartsWith("$mixinDir\") -and -not $_.StartsWith("$implDir\") })
 $srcMixin = @($srcAll | Where-Object { $_.StartsWith("$mixinDir\") -or $_.StartsWith("$implDir\") })
 $testsA = @()
-foreach ($n in @('ConverterSmokeTest', 'DataJarSmokeTest', 'InjectSmokeTest', 'StartupSmokeTest', 'ModsTomlSmokeTest', 'ZoningSmokeTest', 'ZoneWeightSmokeTest', 'LootSmokeTest', 'RoadPaletteSmokeTest', 'CountLimitSplitSmokeTest', 'GapRuleSmokeTest', 'ScatteredMarginSmokeTest', 'ForceFlattenSmokeTest', 'WideRoadBlockSmokeTest', 'ZoneNormalizeSmokeTest', 'CitySizeConfigSmokeTest', 'PackSwapSmokeTest', 'BuildingStatsSmokeTest', 'HighwayStyleSmokeTest', 'BridgeStyleSmokeTest', 'SpawnCitySmokeTest', 'BuildingScanDepthSmokeTest', 'CityCommandSmokeTest', 'PlotFillSmokeTest', 'FillPlotsSmokeTest')) {
+foreach ($n in @('ConverterSmokeTest', 'DataJarSmokeTest', 'InjectSmokeTest', 'StartupSmokeTest', 'ModsTomlSmokeTest', 'ZoningSmokeTest', 'ZoneWeightSmokeTest', 'LootSmokeTest', 'RoadPaletteSmokeTest', 'CountLimitSplitSmokeTest', 'GapRuleSmokeTest', 'ScatteredMarginSmokeTest', 'ForceFlattenSmokeTest', 'ZoneNormalizeSmokeTest', 'CitySizeConfigSmokeTest', 'PackSwapSmokeTest', 'BuildingStatsSmokeTest', 'HighwayStyleSmokeTest', 'SpawnCitySmokeTest', 'BuildingScanDepthSmokeTest', 'CityCommandSmokeTest', 'FillPlotsSmokeTest')) {
     $p = Join-Path $root "tools\smoke\$n.java"
     if (Test-Path -LiteralPath $p) { $testsA += $p }
 }
@@ -272,12 +272,11 @@ Run-Step 'ZoneWeightSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\
 # RoadStyleGenerator have random-list weights summing to exactly 128 (Lost Cities
 # CompiledPalette fills BlockState[128] and throws otherwise). No args needed.
 Run-Step 'RoadPaletteSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\RoadPaletteSmokeTest.java')))
-# Highway part restyling runs in group B; legacy street bridge reskinning remains disabled.
+# Highway part restyling runs in group B.
 Run-Step 'HighwayStyleSmokeTest' $cpRunA @('HighwayStyleSmokeTest', (Join-Path $rt 'highway-config'))
 Run-Step 'SpawnCitySmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\SpawnCitySmokeTest.java')))
 Run-Step 'BuildingScanDepthSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\BuildingScanDepthSmokeTest.java')))
 Run-Step 'CityCommandSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\CityCommandSmokeTest.java')))
-Run-Step 'PlotFillSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\PlotFillSmokeTest.java')))
 Run-Step 'FillPlotsSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\FillPlotsSmokeTest.java')))
 Run-Step 'StructureNbtSmokeTest' $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\StructureNbtSmokeTest.java')), (Join-Path $rt 'structure-nbt'), $Buildings)
 Run-Step 'LootSmokeTest'      $cpRunA @((Get-MainClass (Join-Path $root 'tools\smoke\LootSmokeTest.java')), (Join-Path $rt 'loot'))

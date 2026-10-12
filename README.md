@@ -27,7 +27,7 @@
 **CAF Lost Cities Custom City Addon** — 让[失落城市](https://github.com/McJtyMods/LostCities)只生成你自己添加的建筑。
 
 - Minecraft **1.21.1** / NeoForge **21.1.252** / 失落城市 **8.4.4**
-- 建筑文件放到 `<实例>\config\失落城市建筑\`，重启游戏即可生效
+- 建筑文件放到 `<实例>\config\CAF失落城市配置\`，重启游戏即可生效
 - 失落城市的生成逻辑（道路、公园、地铁、桥梁、城市布局、建筑数量）**完全不变**，只是把"可选建筑列表"换成了你的
 
 ---
@@ -38,7 +38,7 @@
 
 1. 用 WorldEdit 框选**一整栋建筑**（不要带周围的地面和树）：
    `//wand` 选区 → `//copy` → `//schem save 名字`
-2. 把生成的 `.schem` 丢进 `config\失落城市建筑\`（可以放子文件夹里）
+2. 把生成的 `.schem` 丢进 `config\CAF失落城市配置\`（可以放子文件夹里）
 3. 重启游戏
 
 支持 `.schem`（WorldEdit）和 `.nbt`（结构方块）两种格式。
@@ -77,7 +77,7 @@
 启动时（模组构造阶段，此时数据包还没加载）：
 
 ```
-config\失落城市建筑\*.schem
+config\CAF失落城市配置\*.schem
         ↓ 解析 NBT（Sponge v3/旧版包壳/v2、原版结构文件都支持）
         ↓ 按 6 格一层切分，按 16×16 切格
 data\caf_lc_customcity\lostcities\parts\*         建筑切片（字符网格 + 调色板）
@@ -85,7 +85,7 @@ data\caf_lc_customcity\lostcities\buildings\*     建筑定义（楼层引用）
 data\caf_lc_customcity\lostcities\multibuildings\* 多格建筑矩阵
 data\lostcities\lostcities\citystyles\*           ← 覆盖失落城市的城市风格
         ↓
-① config\失落城市建筑\生成的建筑包\caf_lc_customcity\  ← 本次启动即时生效（AddPackFindersEvent）
+① config\CAF失落城市配置\生成的建筑包\caf_lc_customcity\  ← 本次启动即时生效（AddPackFindersEvent）
 ② mods\CAF-LC-建筑包-<编号>-<哈希>.jar             ← 兜底（下次启动一定生效）
 ③ saves\<存档>\datapacks\caf_lc_customcity\        ← 第三条路（可用名单排除某些存档）
 ```
@@ -178,14 +178,15 @@ data\lostcities\lostcities\citystyles\*           ← 覆盖失落城市的城�
 build.bat
 ```
 
-脚本会：编译 → 复制资源 → 打包 → 自动递增 `build_number.properties` → 复制到实例 mods 目录。
+脚本会：编译 → 复制资源 → 打包 → 自动递增 `build_number.properties`，产物只写入 `build/libs/`。
+构建文件不包含测试实例或 `mod保存` 的部署路径；测试和归档由维护者手动复制 jar。
 
-换电脑时改 `local.properties` 里的三个路径即可：
+换电脑时复制 `local.properties.example` 为 `local.properties`，填写本机的两个路径即可：
 
 ```properties
-minecraft_libraries=E:/.../.minecraft/libraries
-deploy_mods=E:/.../.minecraft/versions/<实例>/mods
-java_home=E:/.../jdk-21.0.3
+minecraft_libraries=<实例>/libraries
+java_home=<JDK 21 安装目录>
+lostcities_jar=<失落城市 jar 路径>
 ```
 
 > 仓库里同时保留了标准的 Gradle 工程（`build.gradle` / `settings.gradle` / `gradle.properties`），
@@ -1118,7 +1119,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\run-offline-tests.ps1
 
 ```powershell
 javac -encoding UTF-8 -d build\tools tools\TestBuildings.java
-java -cp build\tools TestBuildings "<实例>\config\失落城市建筑\示例建筑"
+java -cp build\tools TestBuildings "<实例>\config\CAF失落城市配置\示例建筑"
 ```
 
 | 建筑 | 尺寸 | 高度 | 用途 |

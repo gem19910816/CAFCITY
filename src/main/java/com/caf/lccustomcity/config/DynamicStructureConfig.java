@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 「生成建筑自带的动态结构」开关(默认开)。
  *
- * <p>配置文件: {@code config/失落城市建筑/动态结构.json}。
+ * <p>配置文件: {@code config/CAF失落城市配置/动态结构.json}。
  *
  * <h2>这个开关管什么</h2>
  * 建筑文件里除了方块, 还可能有<b>实体</b> —— 物品展示框、盔甲架, 以及机械动力(Create)的
@@ -65,7 +65,7 @@ public final class DynamicStructureConfig {
     /**
      * 读取配置并写进运行时开关; 任何出错都回落到内置默认值(开)并记警告, 绝不抛异常。
      *
-     * @param configDir {@code config/失落城市建筑} 目录; 传 null = 跳过文件读写, 用内置默认值
+     * @param configDir {@code config/CAF失落城市配置} 目录; 传 null = 跳过文件读写, 用内置默认值
      * @param warnings  警告信息(记日志用)
      * @return 最终生效值
      */

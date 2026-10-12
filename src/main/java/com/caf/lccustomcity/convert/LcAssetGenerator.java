@@ -90,10 +90,10 @@ public final class LcAssetGenerator {
         public final List<com.caf.lccustomcity.config.LayoutCatalog.Building> footprints = new ArrayList<>();
         public double outerShare = .4375;
         public final Map<String, String> files = new LinkedHashMap<>();
-        // 内城建筑(放 失落城市建筑\内城\... 或直接放根目录的)。默认大多数建筑是内城。
+        // 内城建筑(放 CAF失落城市配置\内城\... 或直接放根目录的)。默认大多数建筑是内城。
         public final List<String> buildingIds = new ArrayList<>();
         public final List<String> multiIds = new ArrayList<>();
-        // 外城建筑(放 失落城市建筑\外城\... 的)。外城没建筑时, 城市边缘会回退用内城的。
+        // 外城建筑(放 CAF失落城市配置\外城\... 的)。外城没建筑时, 城市边缘会回退用内城的。
         public final List<String> outerBuildingIds = new ArrayList<>();
         public final List<String> outerMultiIds = new ArrayList<>();
         // 内城按"子分区"再分组的建筑清单(子分区名 -> 建筑 id 列表)。
@@ -281,10 +281,10 @@ public final class LcAssetGenerator {
     // 扫描
     // ------------------------------------------------------------------
 
-    /** 扫描报告文件名(写在 config/失落城市建筑/ 下; 每次都写, 包括"一个建筑都没有"的时候)。 */
+    /** 扫描报告文件名(写在 config/CAF失落城市配置/ 下; 每次都写, 包括"一个建筑都没有"的时候)。 */
     public static final String SCAN_REPORT_FILE_NAME = "建筑扫描报告.txt";
 
-    /** 生成产物目录名(位于 config/失落城市建筑/ 下; 必须和 LcCustomCityMod.GENERATED_PACK_NAME 一致)。 */
+    /** 生成产物目录名(位于 config/CAF失落城市配置/ 下; 必须和 LcCustomCityMod.GENERATED_PACK_NAME 一致)。 */
     private static final String GENERATED_PACK_DIR_NAME = "生成的建筑包";
 
     /** 忽略原因: 后缀不符。 */
@@ -672,14 +672,14 @@ public final class LcAssetGenerator {
         // ---- 怎么改 ----
         sb.append('\n');
         sb.append("怎么放（放哪一层都可以, 但“子分区”文件夹要放在 内城\\ 或 外城\\ 下面）:\n");
-        sb.append("    失落城市建筑\\内城\\住宅区\\小楼.schem   = 内城, 子分区 住宅区\n");
-        sb.append("    失落城市建筑\\外城\\民房\\平房.schem     = 外城, 子分区 民房\n");
-        sb.append("    失落城市建筑\\小楼.schem                = 内城（没有子分区）\n");
+        sb.append("    CAF失落城市配置\\内城\\住宅区\\小楼.schem   = 内城, 子分区 住宅区\n");
+        sb.append("    CAF失落城市配置\\外城\\民房\\平房.schem     = 外城, 子分区 民房\n");
+        sb.append("    CAF失落城市配置\\小楼.schem                = 内城（没有子分区）\n");
         sb.append("    还可以再往下套文件夹（不限深度）, 子分区仍按 内城\\ 或 外城\\ 下面的第一层算\n");
         if (res.files.isEmpty()) {
             sb.append('\n');
             sb.append("⚠️ 一个建筑文件都没找到 —— 现在城市里生成的是失落城市自带的原版建筑。\n");
-            sb.append("    请照着上面的路径核对一遍(注意是 config\\失落城市建筑\\, 不是存档目录),\n");
+            sb.append("    请照着上面的路径核对一遍(注意是 config\\CAF失落城市配置\\, 不是存档目录),\n");
             sb.append("    然后重启游戏; 上面“被忽略的文件”列出的路径就是没被当成建筑的那些。\n");
         }
         sb.append('\n');
@@ -1035,7 +1035,7 @@ public final class LcAssetGenerator {
             out.warnings.add(file.getFileName() + ": 有 " + conflicts
                     + " 个调色板字符同时被「战利品条件」和「建筑自带的容器内容」占用, 已按 "
                     + (beWins ? "建筑自带内容优先(这些字符不挂战利品)" : "战利品优先(建筑自带的容器内容被丢弃)")
-                    + " 处理。想换一种: 改 config\\失落城市建筑\\" + BlockEntityContentConfig.FILE_NAME
+                    + " 处理。想换一种: 改 config\\CAF失落城市配置\\" + BlockEntityContentConfig.FILE_NAME
                     + " 里的 " + BlockEntityContentConfig.KEY + "。");
         }
         return root;
@@ -1290,7 +1290,7 @@ public final class LcAssetGenerator {
     public static final String PACK_MCMETA = """
             {
               "pack": {
-                "description": "CAF失落城市自定义城市附属 - 由 config/失落城市建筑 自动生成",
+                "description": "CAF失落城市自定义城市附属 - 由 config/CAF失落城市配置 自动生成",
                 "pack_format": 48
               }
             }

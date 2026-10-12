@@ -30,7 +30,7 @@ import java.util.stream.Stream;
  * 于是这里能用一个沙盒目录把整条流程真跑一遍:
  *
  * <pre>
- *   config/失落城市建筑/ 扫描 → 转换 → 覆盖 citystyle → 落盘 → 注册数据包 → 打包 → 注入存档
+ *   config/CAF失落城市配置/ 扫描 → 转换 → 覆盖 citystyle → 落盘 → 注册数据包 → 打包 → 注入存档
  * </pre>
  *
  * <p>用法: java com.caf.lccustomcity.StartupSmokeTest &lt;沙盒目录&gt; &lt;失落城市jar&gt; [建筑目录]

@@ -1,9 +1,12 @@
 """Copy original street scenes and roadside seating; never edit the source JAR."""
 from pathlib import Path
 import hashlib, json, re, zipfile
+import os, sys
 
 project=Path(__file__).resolve().parent.parent
-source=Path(r'E:\Minecraft\开发者制作\缓存\chaoszpack v.1.4.1 TacZ.jar')
+source=Path(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('CAF_CHAOSZ_JAR', ''))
+if not source.is_file():
+    raise SystemExit('Pass the source jar as the first argument or set CAF_CHAOSZ_JAR.')
 target=project/'src/main/resources/caf_lc_customcity/chaos_roads'
 target.mkdir(parents=True,exist_ok=True)
 with zipfile.ZipFile(source) as jar:

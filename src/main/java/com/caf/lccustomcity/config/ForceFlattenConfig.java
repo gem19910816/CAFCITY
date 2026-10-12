@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 强制削平配置 —— 「城市范围内一律削平」开关(默认开)。
  *
- * <p>配置文件: {@code config/失落城市建筑/强制削平.json}。
+ * <p>配置文件: {@code config/CAF失落城市配置/强制削平.json}。
  * 失落城市默认开着"结构回避": 村庄/丛林神庙等原版结构所在的区块
  * (以及周围 3x3 区块)会被强制踢出城市, 于是<b>不削平</b>,
  * 城里就出现长满树的小山。打开本开关后(默认), 结构回避被整体关掉,
@@ -64,7 +64,7 @@ public final class ForceFlattenConfig {
     /**
      * 读取配置并写进运行时开关; 任何出错都回落到内置默认值(开)并记警告, 绝不抛异常。
      *
-     * @param configDir {@code config/失落城市建筑} 目录; 传 null = 跳过文件读写, 用内置默认值
+     * @param configDir {@code config/CAF失落城市配置} 目录; 传 null = 跳过文件读写, 用内置默认值
      * @param warnings  警告信息(记日志用)
      * @return 最终生效值
      */

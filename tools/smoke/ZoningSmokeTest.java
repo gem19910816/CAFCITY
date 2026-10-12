@@ -55,7 +55,7 @@ public class ZoningSmokeTest {
         }
 
         // ---- 搭三层目录结构 ----
-        Path cfg = sandbox.resolve("失落城市建筑");
+        Path cfg = sandbox.resolve("CAF失落城市配置");
         Files.createDirectories(cfg.resolve("内城/住宅区"));
         Files.createDirectories(cfg.resolve("外城/民房"));
         Files.copy(schems.get(0), cfg.resolve("根目录建筑.schem"));

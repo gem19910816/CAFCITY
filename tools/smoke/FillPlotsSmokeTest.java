@@ -31,7 +31,7 @@ import java.util.List;
  * EmptyPlotRule lives in com.caf.lccustomcity.impl, which the offline suite
  * compiles in the MIXIN group, i.e. AFTER the group-A tests. A direct
  * reference would therefore not compile here, so everything goes through
- * reflection -- the same approach PlotFillSmokeTest uses.
+ * reflection against the production plot-filling implementation.
  *
  * No arguments, no network: the logic under test is pure (G uses a temp dir).
  *

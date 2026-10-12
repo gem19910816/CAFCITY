@@ -33,7 +33,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * (已核对: LostCityTerrainFeature.java 第 86 行, BuildingInfo.java 第 41/43 行)。
  *
  * <h2>开关</h2>
- * {@code config/失落城市建筑/野外建筑离城市距离.json} 里的
+ * {@code config/CAF失落城市配置/野外建筑离城市距离.json} 里的
  * 「野外建筑距城市中心的额外距离」, 默认 200, 0 = 关闭(见 {@code ScatteredMarginConfig})。
  *
  * <h2>确定性 / 兜底</h2>

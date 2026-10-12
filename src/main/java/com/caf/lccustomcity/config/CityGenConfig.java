@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 解析 {@code config/失落城市建筑/城市生成配置.json} —— 强制覆盖失落城市配置档的那 43 项设置。
+ * 解析 {@code config/CAF失落城市配置/城市生成配置.json} —— 强制覆盖失落城市配置档的那 43 项设置。
  *
  * <p>以前这些值写死在 {@code LcCustomCityMod.FORCED_PROFILE_VALUES} 里, 玩家想改只能找作者。
  * 现在它们由本文件控制; {@code FORCED_PROFILE_VALUES} 仍保留, 作为"内置默认值"
@@ -166,7 +166,7 @@ public final class CityGenConfig {
      * 读取配置; 任何出错都回落到内置默认值并记警告, 绝不抛异常。
      * 文件不存在时会先写一份带说明的模板, 方便玩家照着改。
      *
-     * @param configDir {@code config/失落城市建筑} 目录; 传 null = 跳过文件读写, 直接用内置默认值
+     * @param configDir {@code config/CAF失落城市配置} 目录; 传 null = 跳过文件读写, 直接用内置默认值
      * @param defaults  内置默认值(字段名 -&gt; 值), 来源是 {@code LcCustomCityMod.FORCED_PROFILE_VALUES}
      * @return 字段名 -&gt; 最终生效值(永远覆盖全部 43 项), 顺序与 {@link #ENTRIES} 一致
      */

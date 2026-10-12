@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 出生点附近城市配置 —— 「保证出生点 N 格以内有一个城市<b>城心</b>」(默认 850)。
  *
- * <p>配置文件: {@code config/失落城市建筑/出生点附近城市.json}。
+ * <p>配置文件: {@code config/CAF失落城市配置/出生点附近城市.json}。
  *
  * <h2>这个功能做什么</h2>
  * 玩家要的是: <b>在出生点半径 850 格处刷一个城心</b>(原话: "将之前的 200 格看到城市边缘
@@ -98,7 +98,7 @@ public final class SpawnCityConfig {
     /**
      * 读取配置并写进运行时取值; 任何出错都回落到内置默认值并记警告, 绝不抛异常。
      *
-     * @param configDir {@code config/失落城市建筑} 目录; 传 null = 跳过文件读写, 用内置默认值
+     * @param configDir {@code config/CAF失落城市配置} 目录; 传 null = 跳过文件读写, 用内置默认值
      * @param warnings  警告信息(记日志用)
      * @return 最终生效值
      */

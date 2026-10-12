@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 多格建筑间距配置 —— 「大楼之间强制留一格空隙」开关(默认开)。
  *
- * <p>配置文件: {@code config/失落城市建筑/多格建筑间距.json}。
+ * <p>配置文件: {@code config/CAF失落城市配置/多格建筑间距.json}。
  * 打开时(默认), 每栋多格建筑的占地【连同外圈一格】都不许碰到别的多格建筑 ——
  * 也就是两栋大楼之间至少隔一个区块, 不会贴在一起长成一坨。
  * 实现见 {@code com.caf.lccustomcity.mixin.MultiChunkGapMixin} 和
@@ -65,7 +65,7 @@ public final class GapConfig {
     /**
      * 读取配置并写进运行时开关; 任何出错都回落到内置默认值(开)并记警告, 绝不抛异常。
      *
-     * @param configDir {@code config/失落城市建筑} 目录; 传 null = 跳过文件读写, 用内置默认值
+     * @param configDir {@code config/CAF失落城市配置} 目录; 传 null = 跳过文件读写, 用内置默认值
      * @param warnings  警告信息(记日志用)
      * @return 最终生效值
      */

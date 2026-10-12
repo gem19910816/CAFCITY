@@ -47,7 +47,7 @@ import java.util.List;
  * 噪声值是连续的 ⇒ 同一个子分区自然"连成一片", 这就是需求文档定的"连续分区"。
  *
  * <h2>子分区城市风格从哪来</h2>
- * 数据层(CityStylePatcher)会为 {@code 失落城市建筑\内城\<子分区>\} 的每个子分区生成一个
+ * 数据层(CityStylePatcher)会为 {@code CAF失落城市配置\内城\<子分区>\} 的每个子分区生成一个
  * 名为 {@code caf_zone_inner_<哈希>} 的城市风格(复制 citystyle_common, 只换建筑列表)。
  * 本 Mixin <b>直接从失落城市的 citystyles 注册表里按前缀枚举</b>这些风格,
  * 所以新增/删除子分区文件夹后只需重启游戏, Mixin 代码不用改。
