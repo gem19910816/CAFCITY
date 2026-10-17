@@ -26,24 +26,23 @@ public abstract class VacantSurfaceMixin {
     @Inject(method="generateStreet(Lmcjty/lostcities/worldgen/lost/BuildingInfo;Lmcjty/lostcities/worldgen/ChunkHeightmap;)V",
             at=@At("HEAD"),cancellable=true,require=0)
     private void caf$vacantLand(BuildingInfo info,ChunkHeightmap heightmap,CallbackInfo ci) {
-        if(!LayoutCatalog.current().active()||!info.isCity||info.hasBuilding)return;
-        boolean frontage=com.caf.lccustomcity.impl.ChaosRoadRuntime.frontage(info.coord,provider,info.profile);
-        if(com.caf.lccustomcity.config.RoadPresetConfig.enabled()
-                &&com.caf.lccustomcity.impl.CityLayout.enabled(provider,info.profile)
-                &&com.caf.lccustomcity.impl.ChaosRoadRuntime.vacant(info.coord,provider,info.profile)){
-            var selected=com.caf.lccustomcity.impl.ChaosRoadRuntime.select(info.coord,provider,info.profile);
-            var decor=com.caf.lccustomcity.impl.ChaosRoadRuntime.decoration(info.coord,provider,info.profile,selected);
-            var scene=com.caf.lccustomcity.impl.ChaosRoadRuntime.part(selected.name(),selected.turns(),decor,frontage);
-            if(scene!=null){
-                generatePart(info,scene,Transform.ROTATE_NONE,
-                    0,info.getCityGroundLevel(),0,LostCityTerrainFeature.HardAirSetting.VOID);
-                ci.cancel();return;
-            }
+        // The legacy street generator must be intercepted for every city chunk.  Previously
+        // chunks that had not yet resolved to an attached stage/partition returned here and
+        // Lost Cities generated its own mixed-material street surface.
+        if(!info.isCity||info.hasBuilding)return;
+        if(!LayoutCatalog.current().active())return;
+        boolean authoredRoad=com.caf.lccustomcity.impl.RoadNbtRuntime.place(driver,info.coord,provider,info.profile,
+                    info.getCityGroundLevel());
+        // A complete authored road owns the whole plot.  Do not lay the default mixed
+        // surface underneath it: schematic air is intentionally skipped by the NBT
+        // writer and would otherwise reveal the old surface through the preset.
+        if(!authoredRoad) {
+            var part=AssetRegistries.PARTS.getOrThrow(provider.getWorld(),"caf_lc_customcity:vacant_surface");
+            generatePart(info,part,Transform.ROTATE_NONE,0,info.getCityGroundLevel(),0,
+                    LostCityTerrainFeature.HardAirSetting.VOID);
         }
-        var part=AssetRegistries.PARTS.getOrThrow(provider.getWorld(),"caf_lc_customcity:vacant_surface");
-        generatePart(info,part,Transform.ROTATE_NONE,0,info.getCityGroundLevel(),0,
-                LostCityTerrainFeature.HardAirSetting.VOID);
-        if(!BuildingInfo.hasHighway(info.coord,provider,info.profile)
+        boolean frontage=com.caf.lccustomcity.impl.ChaosRoadRuntime.frontage(info.coord,provider,info.profile);
+        if(!authoredRoad&&!BuildingInfo.hasHighway(info.coord,provider,info.profile)
                 && (!(info.profile.RAILWAYS_ENABLED||info.profile.RAILWAY_STATIONS_ENABLED)
                     ||!BuildingInfo.hasRailwayAtSurface(info.coord,provider,info.profile)))
             com.caf.lccustomcity.impl.VacantVegetationPlacer.place(driver,info,provider.getSeed(),frontage);

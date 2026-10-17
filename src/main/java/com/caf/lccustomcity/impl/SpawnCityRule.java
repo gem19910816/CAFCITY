@@ -1,6 +1,8 @@
 package com.caf.lccustomcity.impl;
 
+import com.caf.lccustomcity.config.CityStageConfig;
 import com.caf.lccustomcity.config.SpawnCityConfig;
+import com.caf.lccustomcity.config.StageLayoutConfig;
 import mcjty.lostcities.config.LostCityProfile;
 import mcjty.lostcities.varia.ChunkCoord;
 import mcjty.lostcities.worldgen.IDimensionInfo;
@@ -80,12 +82,12 @@ public final class SpawnCityRule {
      * @param centerZ  城心 Z(方块, 16 的整数倍)
      * @param radius   名义半径(方块)
      */
-    private record Result(boolean needed, int centerX, int centerZ, int radius) {
+    private record Result(boolean needed, boolean eligible, int centerX, int centerZ, int radius) {
     }
 
     /** 记忆化键: 结论只和这些输入有关。 */
     private record Key(Object world, LostCityProfile profile, double chance, long seed, ResourceKey<Level> dim, int spawnX, int spawnZ,
-                       int centerDistance, int radius, int windowChunks) {
+                       int centerDistance, int radius, int windowChunks, long stageRevision) {
     }
 
     /** 键 -> 结论。 */
@@ -132,7 +134,7 @@ public final class SpawnCityRule {
                 return 0.0f;        // 球体世界的外圈配置档不参与(半径/阈值口径会和主档打架)
             }
             Result r = result(provider, main, centerDistance);
-            if (r == null || !r.needed()) {
+            if (r == null || !r.needed() || !r.eligible()) {
                 return 0.0f;
             }
             return SpawnCityPlan.factorAt(r.centerX(), r.centerZ(), r.radius(), coord.chunkX(), coord.chunkZ());
@@ -150,7 +152,8 @@ public final class SpawnCityRule {
         if (provider == null || profile == null || profile != provider.getProfile()
                 || !Level.OVERWORLD.equals(provider.getType()) || SpawnCityConfig.distance() <= 0) return null;
         Result r = result(provider, profile, SpawnCityConfig.distance());
-        return r == null || !r.needed() ? null : new int[]{r.centerX(), r.centerZ(), r.radius()};
+        return r == null || !r.needed() || !r.eligible()
+                ? null : new int[]{r.centerX(), r.centerZ(), r.radius()};
     }
 
     private static Result result(IDimensionInfo provider, LostCityProfile profile, int centerDistance) {
@@ -171,18 +174,19 @@ public final class SpawnCityRule {
 
         // 单槽缓存: 一个世界正常只有一条结论, 这里挡掉绝大多数查表
         int window = scanWindow(centerDistance);
-        Key key = new Key(world.getLevel(), profile, profile.CITY_CHANCE, seed, dim, spawnX, spawnZ, centerDistance, radius, window);
+        Key key = new Key(world.getLevel(), profile, profile.CITY_CHANCE, seed, dim, spawnX, spawnZ,
+                centerDistance, radius, window, CityStageConfig.current().revision());
         Cached cached = cafLast;
         if (cached != null && cached.key().equals(key)) return cached.result();
         Result hit = RESULTS.get(key);
         if (hit == null) {
             // 只在真的要算一次结论时才扫既有城心(每个世界一次); 结果顺手留给日志用
             int[][] cities = nearbyCities(provider, profile, spawnX, spawnZ, window);
-            hit = compute(provider, spawnX, spawnZ, radius, centerDistance, cities);
+            hit = compute(provider, profile, spawnX, spawnZ, radius, centerDistance, cities);
             if (RESULTS.size() < MAX_ENTRIES) {
                 RESULTS.putIfAbsent(key, hit);
             }
-            logPlan(spawnX, spawnZ, hit, radius, profile, cities);
+            logPlan(provider, spawnX, spawnZ, hit, radius, profile, cities);
         }
         cafLast = new Cached(key, hit);
         return hit;
@@ -218,13 +222,109 @@ public final class SpawnCityRule {
      * (只比城心距离, 与半径无关, 见 {@link SpawnCityPlan#satisfied});
      * 不满足就按同一个口径定一座合成城市 —— 摆放用的也是城心距离, 两边完全一致。
      */
-    private static Result compute(IDimensionInfo provider,
+    private static Result compute(IDimensionInfo provider, LostCityProfile profile,
                                   int spawnX, int spawnZ, int radius, int centerDistance, int[][] cities) {
-        if (SpawnCityPlan.satisfied(spawnX, spawnZ, centerDistance, cities)) {
-            return new Result(false, 0, 0, radius);
+        // In the stage system this setting is a minimum distance: search the
+        // nearest stable, terrain-valid candidate outside the protected spawn
+        // circle. The legacy profile keeps the older maximum-distance behavior.
+        if (CityStageConfig.current().enabled()) {
+            int minimumSpacing = minimumStageCenterSpacing();
+            int[] eligible = CustomCityCenterPlanner.nearestOutside(provider, profile,
+                    spawnX, spawnZ, centerDistance, cities, minimumSpacing);
+            if (eligible == null) return new Result(false, false, 0, 0, radius);
+            CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, profile, eligible[0], eligible[1]);
+            if (stage == null) return new Result(false, false, 0, 0, radius);
+            String style = CityStageRuntime.selectedStyle(provider, stage, eligible[0], eligible[1]);
+            int stageRadius = CityStageRuntime.radiusBlocks(provider, stage, style, eligible[2], eligible[0], eligible[1]);
+            return new Result(true, true, eligible[0], eligible[1], stageRadius);
+        }
+        int[][] eligibleCities = eligibleNativeCities(provider, profile, cities);
+        if (SpawnCityPlan.satisfied(spawnX, spawnZ, centerDistance, eligibleCities)) {
+            return new Result(false, true, 0, 0, radius);
         }
         int[] plan = SpawnCityPlan.planGeometry(provider.getSeed(), spawnX, spawnZ, radius, centerDistance);
-        return new Result(true, plan[0], plan[1], plan[2]);
+        if (CityStageConfig.current().enabled()) {
+            int[] eligible = findEligibleCenter(provider, profile, spawnX, spawnZ, centerDistance, plan);
+            if (eligible == null) return new Result(false, false, 0, 0, radius);
+            CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, profile, eligible[0], eligible[1]);
+            String style = CityStageRuntime.selectedStyle(provider, stage, eligible[0], eligible[1]);
+            int stageRadius = CityStageRuntime.radiusBlocks(provider, stage, style, plan[2], eligible[0], eligible[1]);
+            return new Result(true, true, eligible[0], eligible[1], stageRadius);
+        }
+        return new Result(true, true, plan[0], plan[1], plan[2]);
+    }
+
+    private static int minimumStageCenterSpacing() {
+        int minimum = 0;
+        for (String stageName : CityStageConfig.current().stageNames()) {
+            CityStageConfig.Stage stage = CityStageConfig.current().stage(stageName);
+            if (stage == null || !stage.enabled()) continue;
+            for (String style : CityStageConfig.current().stylesForStage(stageName)) {
+                CityStageRuntime.Geometry geometry = CityStageRuntime.geometry(stage, style);
+                if (geometry == null) continue;
+                StageLayoutConfig.Range spacing = geometry.layout().centerSpacing();
+                if (spacing != null && spacing.min() != null) minimum = Math.max(minimum, spacing.min());
+            }
+        }
+        return minimum;
+    }
+
+    private static int[][] eligibleNativeCities(IDimensionInfo provider, LostCityProfile profile,
+                                                 int[][] cities) {
+        if (!CityStageConfig.current().enabled()) return cities;
+        List<int[]> eligible = new ArrayList<>();
+        for (int[] city : cities) {
+            if (CityStageRuntime.acceptedStage(provider, profile, city[0], city[1]) != null) {
+                eligible.add(city);
+            }
+        }
+        return eligible.toArray(new int[0][]);
+    }
+
+    /** Finds the nearest deterministic stage-eligible chunk to the planned forced center. */
+    private static int[] findEligibleCenter(IDimensionInfo provider, LostCityProfile profile,
+                                            int spawnX, int spawnZ, int maxDistance, int[] plan) {
+        int planChunkX = plan[0] >> 4;
+        int planChunkZ = plan[1] >> 4;
+        int maxRing = scanWindow(maxDistance) * 2 + 2;
+        long maxDistanceSquared = (long) maxDistance * maxDistance;
+        for (int ring = 0; ring <= maxRing; ring++) {
+            if (ring == 0) {
+                int[] candidate = eligibleCenterAt(provider, profile, spawnX, spawnZ,
+                        maxDistanceSquared, planChunkX, planChunkZ);
+                if (candidate != null) return candidate;
+                continue;
+            }
+            for (int dx = -ring; dx <= ring; dx++) {
+                int[] north = eligibleCenterAt(provider, profile, spawnX, spawnZ, maxDistanceSquared,
+                        planChunkX + dx, planChunkZ - ring);
+                if (north != null) return north;
+                int[] south = eligibleCenterAt(provider, profile, spawnX, spawnZ, maxDistanceSquared,
+                        planChunkX + dx, planChunkZ + ring);
+                if (south != null) return south;
+            }
+            for (int dz = -ring + 1; dz < ring; dz++) {
+                int[] west = eligibleCenterAt(provider, profile, spawnX, spawnZ, maxDistanceSquared,
+                        planChunkX - ring, planChunkZ + dz);
+                if (west != null) return west;
+                int[] east = eligibleCenterAt(provider, profile, spawnX, spawnZ, maxDistanceSquared,
+                        planChunkX + ring, planChunkZ + dz);
+                if (east != null) return east;
+            }
+        }
+        return null;
+    }
+
+    private static int[] eligibleCenterAt(IDimensionInfo provider, LostCityProfile profile,
+                                          int spawnX, int spawnZ, long maxDistanceSquared,
+                                          int chunkX, int chunkZ) {
+        int x = chunkX * SpawnCityPlan.CHUNK;
+        int z = chunkZ * SpawnCityPlan.CHUNK;
+        long dx = (long) x - spawnX;
+        long dz = (long) z - spawnZ;
+        if (dx * dx + dz * dz > maxDistanceSquared
+                || CityStageRuntime.acceptedStage(provider, profile, x, z) == null) return null;
+        return new int[]{x, z};
     }
 
     /**
@@ -277,12 +377,19 @@ public final class SpawnCityRule {
      * </ul>
      * <p><b>不再</b>报"走到 N 格就能看到城市边缘"那种话 —— 旧口径的数学保证已经不成立。
      */
-    private static void logPlan(int spawnX, int spawnZ, Result r, int radius, LostCityProfile profile,
+    private static void logPlan(IDimensionInfo provider, int spawnX, int spawnZ, Result r,
+                                int radius, LostCityProfile profile,
                                 int[][] cities) {
         if (!r.needed()) {
+            if (!r.eligible()) {
+                CAF_LOGGER.warn("[CAF-LC] 出生点附近城市: 出生点({}, {}) 到配置的距离范围内没有符合阶段群系、高度和生成规则的位置",
+                        spawnX, spawnZ);
+                return;
+            }
+            int[][] eligibleCities = eligibleNativeCities(provider, profile, cities);
             CAF_LOGGER.info("[CAF-LC] 出生点附近城市: 出生点({}, {}) 附近本来就有城 —— "
                             + "最近的城心距出生点约 {} 格(要求 <= {} 格), 不做任何改动",
-                    spawnX, spawnZ, nearestCenterDistance(spawnX, spawnZ, cities), SpawnCityConfig.distance());
+                    spawnX, spawnZ, nearestCenterDistance(spawnX, spawnZ, eligibleCities), SpawnCityConfig.distance());
             return;
         }
         int distance = SpawnCityPlan.centerDistance(spawnX, spawnZ, r.centerX(), r.centerZ());

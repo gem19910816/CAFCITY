@@ -1,17 +1,8 @@
 package com.caf.lccustomcity;
 
-import com.caf.lccustomcity.config.BlockEntityContentConfig;
 import com.caf.lccustomcity.config.BuildingCountLimits;
 import com.caf.lccustomcity.config.CityGenConfig;
-import com.caf.lccustomcity.config.DynamicStructureConfig;
-import com.caf.lccustomcity.config.ForceFlattenConfig;
-import com.caf.lccustomcity.config.EmptyPlotConfig;
-import com.caf.lccustomcity.config.GapConfig;
-import com.caf.lccustomcity.config.HighwayStyleConfig;
-import com.caf.lccustomcity.config.ScatteredMarginConfig;
-import com.caf.lccustomcity.config.SpawnCityConfig;
-import com.caf.lccustomcity.config.ZoneConfig;
-import com.caf.lccustomcity.config.ZoneWeights;
+import com.caf.lccustomcity.config.CityStageConfig;
 import com.caf.lccustomcity.convert.CityStylePatcher;
 import com.caf.lccustomcity.convert.HighwayStyleGenerator;
 import com.caf.lccustomcity.convert.LcAssetGenerator;
@@ -165,6 +156,7 @@ public class LcCustomCityMod {
      */
     public static void startup(IEventBus modEventBus, Path gameDir) throws IOException {
         Path configDir = gameDir.resolve("config").resolve(BUILDING_DIR_NAME);
+        com.caf.lccustomcity.impl.RoadNbtRuntime.install(configDir);
 
         // ---- 0. 启动自检 ----
         // 放在最前面: 玩家排查"我的建筑为什么没生效"时, 日志头几行就该看到关键前提
@@ -178,6 +170,31 @@ public class LcCustomCityMod {
         writeReadme(configDir);
         writeIgnoreListIfMissing(configDir);
         installFlatCityProfile(gameDir);
+
+        // 新城市阶段配置先于建筑扫描加载：后续扫描器和城市布局共用同一份经校验的配置。
+        List<String> stageWarnings = new ArrayList<>();
+        com.caf.lccustomcity.config.CityStageConfig.writeTemplateIfMissing(configDir, stageWarnings);
+        com.caf.lccustomcity.config.CityStageConfig cityStages =
+                com.caf.lccustomcity.config.CityStageConfig.load(configDir, stageWarnings);
+        com.caf.lccustomcity.config.CityStageConfig.install(cityStages);
+        stageWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+        if (cityStages.legacyMode()) {
+            LOGGER.info("[CAF-LC] 城市阶段系统: 未配置，继续使用旧的单一城市配置");
+        } else if (cityStages.enabled()) {
+            LOGGER.info("[CAF-LC] 城市阶段配置已加载: 可用风格 {}, 启用阶段 {}",
+                    cityStages.availableStyleFolders(), cityStages.stages().values().stream()
+                            .filter(com.caf.lccustomcity.config.CityStageConfig.Stage::enabled)
+                            .map(com.caf.lccustomcity.config.CityStageConfig.Stage::name).toList());
+        }
+        List<String> rootOptionWarnings = new ArrayList<>();
+        com.caf.lccustomcity.config.RootCityOptions.Settings rootOptions =
+                com.caf.lccustomcity.config.RootCityOptions.load(configDir, configDir, rootOptionWarnings);
+        rootOptionWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+        LOGGER.info("[CAF-LC] 根配置附属功能已加载: 出生点城心距离 {} 格, 动态结构 {}, 高速路风格 {}, 建筑自带箱子内容优先 {}, 强制削平 {}, 野外建筑额外距离 {} 格, 地皮填充 {}, 多格建筑留空 {}",
+                rootOptions.spawnCityDistance(), rootOptions.dynamicStructures(), rootOptions.highwayStyle(),
+                rootOptions.blockEntityContentWins(),
+                rootOptions.forceFlatten(), rootOptions.scatteredMargin(), rootOptions.fillEmptyPlots(),
+                rootOptions.gapBetweenLargeBuildings());
 
         // ---- 1. 转换建筑 ----
         LcAssetGenerator.Output out = LcAssetGenerator.generate(configDir, LOGGER);
@@ -193,14 +210,8 @@ public class LcCustomCityMod {
                     BuildingCountLimits.totalConfigured());
         }
 
-        // 内城子分区占比(阶段 2b): 装进运行时查询表, CityStyleZoneMixin 分区时按城市风格名查。
-        // 即使下面 isEmpty() 提前返回也要先装 —— 没建筑时装进空表, 分区自然退化为均分。
-        ZoneWeights.install(out.zoneWeights);
-        com.caf.lccustomcity.config.LayoutCatalog.install(out.footprints, out.zoneWeights, out.outerShare);
-        if (ZoneWeights.configured() > 0) {
-            LOGGER.info("[CAF-LC] 内城子分区占比: {} 个子分区配了占比(相对权重, 没配的按均分)",
-                    ZoneWeights.configured());
-        }
+        com.caf.lccustomcity.config.LayoutCatalog.install(out.footprints, out.zoneWeights, out.outerShare,
+                out.displayNames);
 
         // 建筑生成次数统计(玩家: "我想看看是不是所有建筑都是正常生成的"):
         // 用这份转换结果登记"全部建筑 = 0 次", 之后 Mixin 每选中一栋就 +1,
@@ -212,9 +223,7 @@ public class LcCustomCityMod {
         // 大楼间距开关(多格建筑之间强制留一格空隙): 装进运行时查询表,
         // MultiChunkGapMixin 放置多格建筑时读。即使下面 isEmpty() 提前返回也要先读 ——
         // 读配置不依赖有没有建筑文件。
-        List<String> gapWarnings = new ArrayList<>();
-        boolean gapEnabled = GapConfig.load(configDir, gapWarnings);
-        gapWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+        boolean gapEnabled = rootOptions.gapBetweenLargeBuildings();
         LOGGER.info("[CAF-LC] 大楼之间强制留一格空隙: {}", gapEnabled ? "开(多格建筑互不相邻)" : "关(允许相邻)");
 
         // 出生点附近城市(保证出生点 N 格以内有一个"城心", 默认 850 格):
@@ -224,9 +233,7 @@ public class LcCustomCityMod {
         // (绝不搬走已有的城), 否则补一座城, 让它的城心落在距出生点约 850 格处。
         // 半径 800 的城看得见的城区边缘大约在 850 - 800*0.8 = 210 格外(给玩家参考, 不是保证)。
         // 必须在下面 isEmpty() 提前返回之前读 —— 读配置不依赖有没有建筑文件。
-        List<String> spawnCityWarnings = new ArrayList<>();
-        int spawnCityDistance = SpawnCityConfig.load(configDir, spawnCityWarnings);
-        spawnCityWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+        int spawnCityDistance = rootOptions.spawnCityDistance();
         if (spawnCityDistance > 0) {
             LOGGER.info("[CAF-LC] 出生点附近城市已生效: 出生点 {} 格以内保证有一座城的城心"
                     + "(口径是城心距离, 不是看得见的边缘距离)", spawnCityDistance);
@@ -237,25 +244,19 @@ public class LcCustomCityMod {
         // 高速路风格开关(把失落城市高速路的路面换成我们的路面方块):
         // 转换数据包时 HighwayStyleGenerator 读。必须在下面 isEmpty() 提前返回之前读 ——
         // 读配置不依赖有没有建筑文件。
-        List<String> highwayWarnings = new ArrayList<>();
-        boolean highwayStyle = HighwayStyleConfig.load(configDir, highwayWarnings);
-        highwayWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+        boolean highwayStyle = rootOptions.highwayStyle();
         LOGGER.info("[CAF-LC] 高速路使用城市空地铺面: {}", highwayStyle);
 
         // 野外建筑离城市距离(野外原版建筑只在城市 N 格以外生成): 装进运行时取值,
         // ScatteredMarginMixin 判定候选区块时读。必须在下面 isEmpty() 提前返回之前读 ——
         // 读配置不依赖有没有建筑文件。
-        List<String> marginWarnings = new ArrayList<>();
-        int scatteredMargin = ScatteredMarginConfig.load(configDir, marginWarnings);
-        marginWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+        int scatteredMargin = rootOptions.scatteredMargin();
         LOGGER.info("[CAF-LC] 野外建筑距城市中心的额外距离: {}", scatteredMargin > 0
                 ? scatteredMargin + " 格以内不放野外建筑" : "关(恢复失落城市原生行为)");
 
         // 城市范围内一律削平(关掉失落城市的结构回避): 装进运行时开关,
         // 结构回避、城市地基与原版地表结构拦截读取。必须在下面 isEmpty() 提前返回之前读。
-        List<String> flattenWarnings = new ArrayList<>();
-        boolean forceFlatten = ForceFlattenConfig.load(configDir, flattenWarnings);
-        flattenWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+        boolean forceFlatten = rootOptions.forceFlatten();
         LOGGER.info("[CAF-LC] 城市范围内一律削平: {}", forceFlatten
                 ? "开(城市补实地基，停止放置相交的原版地表结构)" : "关(恢复失落城市原生结构回避)");
 
@@ -263,9 +264,7 @@ public class LcCustomCityMod {
         // 失落城市的生成顺序是 loot > mob > tag ⇒ 同一个字符不能既挂战利品又带建筑自带的
         // 方块实体数据, 必须让玩家选谁优先。必须在下面 isEmpty() 提前返回之前读 ——
         // 读配置不依赖有没有建筑文件。
-        List<String> beContentWarnings = new ArrayList<>();
-        boolean beContentWins = BlockEntityContentConfig.load(configDir, beContentWarnings);
-        beContentWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+        boolean beContentWins = rootOptions.blockEntityContentWins();
         LOGGER.info("[CAF-LC] 建筑自带的箱子内容: {}", beContentWins
                 ? "优先(自带内容的容器不挂战利品池)"
                 : "让位(挂战利品池的容器丢掉自带内容, 即改动前的行为)");
@@ -273,9 +272,7 @@ public class LcCustomCityMod {
         // 动态结构开关(阶段 2 新增): 运行时由 impl 里的放置器读(见 DynamicStructurePlacer)。
         // 它决定"建筑自带的实体(尤其是机械动力的动态结构)要不要放进世界"。
         // 同样必须在下面 isEmpty() 提前返回之前读 —— 读配置不依赖有没有建筑文件。
-        List<String> dynWarnings = new ArrayList<>();
-        boolean dynEnabled = DynamicStructureConfig.load(configDir, dynWarnings);
-        dynWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+        boolean dynEnabled = rootOptions.dynamicStructures();
         LOGGER.info("[CAF-LC] 建筑自带的动态结构(实体): {}", dynEnabled
                 ? "开(生成建筑时把自带实体放回世界)" : "关(只放方块, 不放实体)");
 
@@ -283,9 +280,7 @@ public class LcCustomCityMod {
         // 就不再被"建筑几率掷骰"挡掉, 强制放建筑(消除城里的小空地)。
         // 运行时由 FillPlotsMixin 读; 同样必须在下面 isEmpty() 提前返回之前读 ——
         // 读配置不依赖有没有建筑文件。
-        List<String> fillPlotsWarnings = new ArrayList<>();
-        boolean fillEmptyPlots = EmptyPlotConfig.load(configDir, fillPlotsWarnings);
-        fillPlotsWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+        boolean fillEmptyPlots = rootOptions.fillEmptyPlots();
         LOGGER.info("[CAF-LC] 空地也要放建筑: {}", fillEmptyPlots
                 ? "开(单格地皮不被建筑几率掷骰挡掉, 强制放建筑)" : "关(保留失落城市原生的随机空地)");
 
@@ -299,14 +294,8 @@ public class LcCustomCityMod {
         Path lcJar = findLostCitiesJar(gameDir);
         // Preserve the flat fallback; authored scenes only occupy existing vacant land.
         RoadStyleGenerator.generateVacantSurface(out);
-        var presetWarnings=new ArrayList<String>();
-        com.caf.lccustomcity.config.RoadPresetConfig.load(configDir,presetWarnings);
-        presetWarnings.forEach(w->LOGGER.warn("[CAF-LC] {}",w));
-        int presetParts=com.caf.lccustomcity.convert.ChaosRoadAssets.generate(out,LOGGER);
-        LOGGER.info("[CAF-LC] 已加载 {} 张路面场景，现有空地预设生成: {}",presetParts,
-                com.caf.lccustomcity.config.RoadPresetConfig.enabled());
         HighwayStyleGenerator.generate(lcJar,out,LOGGER);
-        LOGGER.info("[CAF-LC] 建筑地皮不划分道路；空地按连接方向生成路面场景，高速使用六材料铺面。");
+        LOGGER.info("[CAF-LC] 城区道路从对应风格/阶段/分区/道路文件/形状目录读取完整自定义 .nbt 场景；高速路使用独立铺面配置。");
         List<String> patched = CityStylePatcher.patch(lcJar, out, LOGGER);
         if (lcJar == null) {
             LOGGER.error("[CAF-LC] 在 mods 目录里找不到失落城市的 jar, 无法覆盖城市风格 —— "
@@ -1058,10 +1047,9 @@ public class LcCustomCityMod {
                                                    // (玩家要求 1500~5000 格; 几率 = 256/3000^2 ≈ 0.00003)
                                                    // ★ 必须是 double(不能写 0.00003f): 字段类型是 double, 写成 Float 会被类型检查跳过
             { "CITY_THRESHOLD",        0.2f  },
-            { "CITY_MINRADIUS",        800   },  // 单位: 方块(= 50 区块); 城区配置.json 的 城市.最小半径 会盖掉它
-            { "CITY_MAXRADIUS",        800   },  // 单位: 方块(= 50 区块); 城区配置.json 的 城市.最大半径 会盖掉它
-                                                 // ★ 内置值必须和 ZoneConfig 默认值(50/50 区块)一致 ⇒ 半径恒 800 方块(玩家要的"半径 800 方块")。
-                                                 //   两边不一致会互相矛盾: 城区配置.json 永远优先, 所以落地的是 800/800, 表里写别的就是死值+测试报红
+            { "CITY_MINRADIUS",        800   },  // 单位: 方块; 阶段城市配置会按阶段覆盖
+            { "CITY_MAXRADIUS",        800   },  // 单位: 方块; 阶段城市配置会按阶段覆盖
+                                                 //   两边不一致会互相矛盾: 阶段城区配置永远优先
             { "CITY_PERLIN_SCALE",     3.0   },  // double
             { "CITY_PERLIN_OFFSET",    0.1   },  // double
             { "CITY_PERLIN_INNERSCALE", 0.1  },  // double
@@ -1077,10 +1065,6 @@ public class LcCustomCityMod {
             { "CORRIDOR_CHANCE",           0.7f },
             { "BRIDGE_CHANCE",             0.7f },
             { "FOUNTAIN_CHANCE",           0.05f },
-            // ---- 内外城分区: 城市因子(离市中心越近越大)低于阈值的外圈算"外城", 用 citystyle_border ----
-            // 阈值 -1 = 关(全城内城)。这里强制 0.2(外城约占城市面积 36%), 让内外城之分对所有配置档生效。
-            { "CITY_STYLE_THRESHOLD",  0.4f  },  // 外城阈值必须大于城市阈值(0.2), 否则外城环带宽度为 0; 城区配置.json 的 外城占比 会盖掉它
-            { "CITY_STYLE_ALTERNATIVE", "citystyle_border" },
     };
 
     /** 内置默认值(字段名 -> 值), 是 {@link CityGenConfig} 缺失/出错时的回退来源。 */
@@ -1093,43 +1077,6 @@ public class LcCustomCityMod {
     }
 
     /**
-     * 由"外城占比(可见城市面积里属于外城的比例)"反解失落城市的外城阈值 CITY_STYLE_THRESHOLD。
-     *
-     * <p>数学关系: 城市阈值 CITY_THRESHOLD=0.2, 所以可见城市范围是 dist &lt;= 0.8r;
-     * 外城是 dist &gt; (1-th)r。面积成正比于半径平方, 所以
-     * 可见面积里外城占比 share = (0.64 - (1-th)^2) / 0.64, 反解得
-     * th = 1 - sqrt(0.64 * (1 - share))。
-     *
-     * <p><b>clamp 到 [0.21, 0.95]</b>: 阈值必须<b>严格大于</b>城市阈值 0.2 ——
-     * 两者相等时外城环带宽度为 0, 外城根本不会出现(这是之前"看不到外城"的根因);
-     * 也不能 &gt;= 1。另外失落城市里 -1 是"关闭外城"的语义, 玩家配出极端值时宁可 clamp
-     * 也绝不能算出负数传下去(share &gt; 1 时 sqrt 出 NaN, 回落到默认 0.4)。
-     */
-    public static float outerThresholdFromShare(double share) {
-        double th = 1.0 - Math.sqrt(0.64 * (1.0 - share));
-        if (Double.isNaN(th)) {
-            return 0.4f;    // share > 1 等配错的情况: 用默认阈值 0.4
-        }
-        return (float) Math.min(0.95, Math.max(0.21, th));
-    }
-
-    /**
-     * 把 城区配置.json 的 城市.最小半径/最大半径(单位: 区块)和 外城占比 折算成
-     * 要强制写进失落城市配置档的三项值: CITY_MINRADIUS / CITY_MAXRADIUS(换算成方块, *16)
-     * 和 CITY_STYLE_THRESHOLD(取占比区间中点, 按 {@link #outerThresholdFromShare} 反解)。
-     *
-     * <p>公开成 static 供离线冒烟测试直接验证换算逻辑。
-     */
-    public static Map<String, Object> citySizeOverrides(ZoneConfig zc) {
-        Map<String, Object> out = new java.util.LinkedHashMap<>();
-        out.put("CITY_MINRADIUS", zc.radiusMin * 16);
-        out.put("CITY_MAXRADIUS", zc.radiusMax * 16);
-        double share = (zc.outerRatio.min() + zc.outerRatio.max()) / 2.0;
-        out.put("CITY_STYLE_THRESHOLD", outerThresholdFromShare(share));
-        return out;
-    }
-
-    /**
      * 强制覆盖所有失落城市配置档的 废墟/爆炸/高度 设置。
      *
      * <p><b>为什么需要它</b>: 这些设置原本由"创建世界时选哪个配置档"决定。玩家如果忘了选,
@@ -1137,7 +1084,7 @@ public class LcCustomCityMod {
      * 看起来就像"方块大量丢失"。既然本模组的目标是"只生成我自己的建筑",
      * 就不该让这个选择影响结果 —— 不管选哪个档, 都由本模组统一覆盖。
      *
-     * <p><b>取值</b>: 从 {@code config/CAF失落城市配置/城市生成配置.json} 读(见 {@link CityGenConfig}),
+     * <p><b>取值</b>: 从根配置 {@code 城市风格配置.json} 的 {@code 城市生成配置} 区域读取(见 {@link CityGenConfig}),
      * 读不到/出错就回退到 {@link #FORCED_PROFILE_VALUES} 的内置默认值。
      *
      * <p><b>做法</b>: 直接改内存里 {@code ProfileSetup.STANDARD_PROFILES} 里的那些对象。
@@ -1172,25 +1119,8 @@ public class LcCustomCityMod {
         int count = 0;
         try {
             List<String> cfgWarnings = new ArrayList<>();
-            Map<String, Object> values = CityGenConfig.load(configDir, forcedProfileDefaults(), cfgWarnings);
+            Map<String, Object> values = CityGenConfig.loadRoot(configDir, forcedProfileDefaults(), cfgWarnings);
             cfgWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
-
-            // 城市大小与外城占比: 城区配置.json 的优先级最高 —— 玩家要的就是
-            // "改城区配置就行"。ZoneConfig 自带容错: 缺键/坏 JSON 时回落默认
-            // (50/50 区块 = 800/800 方块, 外城占比中点 0.4375 = 阈值 0.4),
-            // 所以这三行覆盖永远不会把值变成 0 或崩掉。configDir 为 null
-            // (FMLPaths 不可用的离线场合)时跳过, 用上面的内置默认即可。
-            if (configDir != null) {
-                List<String> zoneWarnings = new ArrayList<>();
-                ZoneConfig zc = ZoneConfig.load(configDir, zoneWarnings);
-                zoneWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
-                Map<String, Object> sizeOverrides = citySizeOverrides(zc);
-                values.putAll(sizeOverrides);
-                LOGGER.info("[CAF-LC] 城市大小(来自 城区配置.json): 半径 {}~{} 区块({}~{} 方块), 外城阈值 {}",
-                        zc.radiusMin, zc.radiusMax,
-                        sizeOverrides.get("CITY_MINRADIUS"), sizeOverrides.get("CITY_MAXRADIUS"),
-                        sizeOverrides.get("CITY_STYLE_THRESHOLD"));
-            }
 
             Class<?> setupCls = Class.forName("mcjty.lostcities.config.ProfileSetup");
             Object mapObj = setupCls.getField("STANDARD_PROFILES").get(null);
@@ -1309,7 +1239,7 @@ public class LcCustomCityMod {
     }
 
     /** 说明文件的版本号。{@link #README_TEXT} 的内容有改动时把这个数字 +1。 */
-    public static final int README_VERSION = 9;
+    public static final int README_VERSION = 10;
     /** 写在说明文件开头、用来识别版本的标记行。只有本模组会写这一行。 */
     private static final String README_VERSION_MARK = "# CAF-LC 说明版本: ";
 
@@ -1411,6 +1341,20 @@ public class LcCustomCityMod {
                  扫到多少栋、按 内城/外城 和子分区分别是多少、忽略了哪些文件及其路径。
                  建筑没生效时先看这个文件
 
+             2.1) 阶段城市配置(可选)
+                - 根目录的 城市风格配置.json 用来选择可用风格和距离阶段。模组首次启动会自动生成
+                  一份默认停用的模板; 不填写它不会改变旧版单城市生成。
+                - 阶段最多 10 个，阶段配置中的名称就是风格目录下的文件夹名，不再写死为四个名称。
+                  默认模板仍提供 乡村、小镇、小城、大城 四个阶段。
+                - 阶段目录格式为:
+                     CAF失落城市配置\\西式风格\\乡村\\建筑文件\\小楼.nbt
+                  配置中的风格目录或阶段目录不存在时会自动创建建筑文件和战利品文件骨架，
+                  不会覆盖已有建筑和战利品。
+                - 距离、是否分区、是否区分内外城、阶段生成开关、数量上下限和概率都在根文件中配置。
+                - 根配置的阶段参数按阶段区分；阶段目录只放建筑文件和战利品文件。
+                - 每个分区的战利品文件直接放在该分区的 战利品文件\\ 下；按 单建筑 > 分区通用 覆盖，
+                  未设置时使用根配置的阶段战利品规则。分区通用文件可命名为 分区通用.json。
+
             3) 尺寸限制
                - 占地最大 256 x 256 方块(16 x 16 格, 一格 = 一个区块 16 方块), 高度不限
                - 超过 16x16 的建筑会被自动转成"多格建筑"(占 2x2 格或更多)
@@ -1490,7 +1434,7 @@ public class LcCustomCityMod {
                   看起来像"方块大量丢失"。所以干脆由模组统一盖掉这个选择。
                 - 注意: 这条会一并盖掉 space / cavern / void_outside 这类特殊配置档的
                   地形效果。
-                - 想调整这套强制值: 打开本目录下的 城市生成配置.json 改里面的数字即可
+                - 想调整这套强制值: 打开根目录 城市风格配置.json 的 城市生成配置 区域改数值即可
                   (首次启动会自动生成, 带中文说明), 重启游戏生效。
                   整个文件删掉 = 全部用内置默认值。
                 - config\\lostcities\\profiles\\caf_flat_sea.json 仍然会自动安装,

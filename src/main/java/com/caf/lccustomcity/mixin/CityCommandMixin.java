@@ -1,8 +1,10 @@
 package com.caf.lccustomcity.mixin;
 
 import com.caf.lccustomcity.impl.CityCommandService;
+import com.caf.lccustomcity.impl.CityLocator;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -87,6 +89,48 @@ public abstract class CityCommandMixin {
                 // 交回"文本"入口, 让 0 / 负数 / 超大数字都走 CityLocator 里那套回落逻辑
                 CityCommandService.report(ctx.getSource(),
                         Integer.toString(IntegerArgumentType.getInteger(ctx, ARG_LIMIT)));
+                return 1;
+            }));
+
+            // 指令1的显式写法: /cafcity nearest [距离]
+            node.then(Commands.literal("nearest").executes(ctx -> {
+                CityCommandService.report(ctx.getSource(), null);
+                return 1;
+            }).then(Commands.argument(ARG_LIMIT, IntegerArgumentType.integer()).executes(ctx -> {
+                CityCommandService.report(ctx.getSource(), Integer.toString(
+                        IntegerArgumentType.getInteger(ctx, ARG_LIMIT)));
+                return 1;
+            })));
+
+            // 指令2: /cafcity inspect
+            node.then(Commands.literal("inspect").executes(ctx -> {
+                CityCommandService.reportInspect(ctx.getSource());
+                return 1;
+            }));
+
+            // 指令3: /cafcity find <阶段名> <风格名> [距离]
+            LiteralArgumentBuilder<CommandSourceStack> find = Commands.literal("find");
+            find.then(Commands.argument("stage", StringArgumentType.word())
+                    .then(Commands.argument("style", StringArgumentType.word())
+                            .executes(ctx -> {
+                                CityCommandService.reportFind(ctx.getSource(),
+                                        StringArgumentType.getString(ctx, "stage"),
+                                        StringArgumentType.getString(ctx, "style"), CityLocator.MAX_LIMIT);
+                                return 1;
+                            })
+                            .then(Commands.argument(ARG_LIMIT, IntegerArgumentType.integer())
+                                    .executes(ctx -> {
+                                        CityCommandService.reportFind(ctx.getSource(),
+                                                StringArgumentType.getString(ctx, "stage"),
+                                                StringArgumentType.getString(ctx, "style"),
+                                                IntegerArgumentType.getInteger(ctx, ARG_LIMIT));
+                                        return 1;
+                                    }))));
+            node.then(find);
+
+            // 指令4: /cafcity all，固定搜索当前位置 20000 格范围。
+            node.then(Commands.literal("all").executes(ctx -> {
+                CityCommandService.reportAll(ctx.getSource());
                 return 1;
             }));
             dispatcher.register(node);

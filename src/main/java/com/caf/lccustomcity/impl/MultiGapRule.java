@@ -51,7 +51,12 @@ public final class MultiGapRule {
      * @return true = 环里有别的建筑, 应否决放置; false = 环空 / 开关关 / 判定失败(放行)
      */
     public static boolean ringOccupied(Object multiChunk, int x, int z, int dimX, int dimZ) {
-        if (!GapConfig.enabled()) {
+        return ringOccupied(multiChunk, x, z, dimX, dimZ, GapConfig.enabled());
+    }
+
+    public static boolean ringOccupied(Object multiChunk, int x, int z, int dimX, int dimZ,
+                                       boolean enabled) {
+        if (!enabled) {
             return false;
         }
         try {

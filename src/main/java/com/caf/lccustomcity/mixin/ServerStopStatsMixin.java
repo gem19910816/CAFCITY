@@ -50,6 +50,7 @@ public abstract class ServerStopStatsMixin {
             BuildingStats.export("退出存档/服务器停止");
             com.caf.lccustomcity.impl.CityLayout.clear();
             com.caf.lccustomcity.impl.SpawnCityRule.clear();
+            com.caf.lccustomcity.impl.CityStageRuntime.clearEligibilityCache();
         } catch (Throwable t) {
             CAF_LOGGER.warn("[CAF-LC] 导出建筑生成统计失败(已忽略): {}", t.toString());
         }

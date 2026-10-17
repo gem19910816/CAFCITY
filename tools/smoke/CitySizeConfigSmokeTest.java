@@ -51,13 +51,13 @@ public final class CitySizeConfigSmokeTest {
         Path dir1 = tmp.resolve("missing");
         List<String> w1 = new ArrayList<>();
         ZoneConfig z1 = ZoneConfig.load(dir1, w1);
-        check(z1.radiusMin == 50 && z1.radiusMax == 50,
-                "missing file -> default radius 50/50 chunks");
+        check(z1.radiusMin == 800 && z1.radiusMax == 800,
+                "missing file -> default radius 800/800 blocks");
         Map<String, Object> o1 = LcCustomCityMod.citySizeOverrides(z1);
         check(o1.get("CITY_MINRADIUS").equals(800) && o1.get("CITY_MAXRADIUS").equals(800),
                 "missing file -> 800/800 blocks");
-        check(close(((Number) o1.get("CITY_STYLE_THRESHOLD")).floatValue(), 0.4f),
-                "missing file -> outer threshold 0.4");
+        check(close(((Number) o1.get("CITY_STYLE_THRESHOLD")).floatValue(), -1.0f),
+                "missing file -> inner/outer disabled");
 
         // ---- 2. file present, city section / keys missing -> same defaults ----
         Path dir2 = tmp.resolve("empty");
@@ -68,8 +68,8 @@ public final class CitySizeConfigSmokeTest {
         Map<String, Object> o2 = LcCustomCityMod.citySizeOverrides(z2);
         check(o2.get("CITY_MINRADIUS").equals(800) && o2.get("CITY_MAXRADIUS").equals(800),
                 "empty JSON object -> 800/800 blocks");
-        check(close(((Number) o2.get("CITY_STYLE_THRESHOLD")).floatValue(), 0.4f),
-                "empty JSON object -> outer threshold 0.4");
+        check(close(((Number) o2.get("CITY_STYLE_THRESHOLD")).floatValue(), -1.0f),
+                "empty JSON object -> inner/outer disabled");
 
         Path dir2b = tmp.resolve("cityonly");
         Files.createDirectories(dir2b);
@@ -81,22 +81,21 @@ public final class CitySizeConfigSmokeTest {
         check(o2b.get("CITY_MINRADIUS").equals(800) && o2b.get("CITY_MAXRADIUS").equals(800),
                 "city section without keys -> 800/800 blocks");
 
-        // ---- 3. normal values: 15/25 chunks + outer ratio [0.40,0.475] ----
+        // ---- 3. normal values: 200/300 blocks ----
         Path dir3 = tmp.resolve("normal");
         Files.createDirectories(dir3);
         Files.writeString(dir3.resolve(ZoneConfig.FILE_NAME),
-                "{\"" + K_CITY + "\":{\"" + K_RMIN + "\":15,\"" + K_RMAX + "\":25,\""
-                        + K_OUTER + "\":[0.40,0.475]}}",
+                "{\"" + K_CITY + "\":{\"" + K_RMIN + "\":200,\"" + K_RMAX + "\":300}}",
                 StandardCharsets.UTF_8);
         List<String> w3 = new ArrayList<>();
         ZoneConfig z3 = ZoneConfig.load(dir3, w3);
-        check(z3.radiusMin == 15 && z3.radiusMax == 25, "config radius parsed as chunks 15/25");
+        check(z3.radiusMin == 200 && z3.radiusMax == 300, "config radius parsed as blocks 200/300");
         Map<String, Object> o3 = LcCustomCityMod.citySizeOverrides(z3);
         // chunk -> block conversion asserted explicitly (task requirement)
-        check(o3.get("CITY_MINRADIUS").equals(240), "15 chunks -> 240 blocks");
-        check(o3.get("CITY_MAXRADIUS").equals(400), "25 chunks -> 400 blocks");
-        check(close(((Number) o3.get("CITY_STYLE_THRESHOLD")).floatValue(), 0.4f),
-                "outer ratio [0.40,0.475] midpoint 0.4375 -> threshold 0.4");
+        check(o3.get("CITY_MINRADIUS").equals(200), "200 block minimum passed through");
+        check(o3.get("CITY_MAXRADIUS").equals(300), "300 block maximum passed through");
+        check(close(((Number) o3.get("CITY_STYLE_THRESHOLD")).floatValue(), -1.0f),
+                "inner/outer disabled for staged cities");
 
         // ---- 4. conversion formula: th == 1 - sqrt(0.64*(1-share)) ----
         double[] shares = {0.1, 0.25, 0.4375, 0.5, 0.8};
@@ -127,7 +126,7 @@ public final class CitySizeConfigSmokeTest {
         List<String> w5 = new ArrayList<>();
         float th5 = ((Number) LcCustomCityMod.citySizeOverrides(ZoneConfig.load(dir5, w5))
                 .get("CITY_STYLE_THRESHOLD")).floatValue();
-        check(th5 >= 0.21f && th5 > 0.2f, "configured outer ratio [0,0] -> clamped to 0.21");
+        check(th5 == -1.0f, "legacy outer ratio ignored by staged cities");
 
         // ---- 6. min > max -> both fall back to defaults plus warning ----
         Path dir6 = tmp.resolve("inverted");
@@ -138,7 +137,7 @@ public final class CitySizeConfigSmokeTest {
         List<String> w6 = new ArrayList<>();
         ZoneConfig z6 = ZoneConfig.load(dir6, w6);
         Map<String, Object> o6 = LcCustomCityMod.citySizeOverrides(z6);
-        check(z6.radiusMin == 50 && z6.radiusMax == 50, "min > max -> radii fall back to 50/50");
+        check(z6.radiusMin == 800 && z6.radiusMax == 800, "min > max -> radii fall back to 800/800 blocks");
         check(o6.get("CITY_MINRADIUS").equals(800) && o6.get("CITY_MAXRADIUS").equals(800),
                 "min > max -> 800/800 blocks");
         check(!w6.isEmpty(), "min > max recorded a warning");
@@ -153,8 +152,8 @@ public final class CitySizeConfigSmokeTest {
         Map<String, Object> o7 = LcCustomCityMod.citySizeOverrides(z7);
         check(o7.get("CITY_MINRADIUS").equals(800) && o7.get("CITY_MAXRADIUS").equals(800),
                 "broken JSON -> 800/800 blocks");
-        check(close(((Number) o7.get("CITY_STYLE_THRESHOLD")).floatValue(), 0.4f),
-                "broken JSON -> outer threshold 0.4");
+        check(close(((Number) o7.get("CITY_STYLE_THRESHOLD")).floatValue(), -1.0f),
+                "broken JSON -> inner/outer disabled");
         check(!w7.isEmpty(), "broken JSON recorded a warning");
 
         // ---- 8. wrong types -> that field falls back plus warning, rest works ----
@@ -169,8 +168,8 @@ public final class CitySizeConfigSmokeTest {
         Map<String, Object> o8 = LcCustomCityMod.citySizeOverrides(z8);
         check(o8.get("CITY_MINRADIUS").equals(800) && o8.get("CITY_MAXRADIUS").equals(800),
                 "wrong types -> radius falls back to 800/800 blocks");
-        check(close(((Number) o8.get("CITY_STYLE_THRESHOLD")).floatValue(), 0.4f),
-                "wrong outer ratio type -> threshold 0.4");
+        check(close(((Number) o8.get("CITY_STYLE_THRESHOLD")).floatValue(), -1.0f),
+                "wrong legacy outer ratio type -> inner/outer disabled");
         check(!w8.isEmpty(), "wrong types recorded warnings");
 
         System.out.println();

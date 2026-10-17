@@ -34,7 +34,7 @@ public final class ChaosRoadRuntime {
         return cell!=null&&cell.placement()==null&&!protectedSurface(c,p,profile);
     }
     public static boolean frontage(ChunkCoord c,IDimensionInfo p,LostCityProfile profile){
-        if(!CityLayout.enabled(p,profile))return false;
+        if(!CityLayout.enabledFor(c,p,profile))return false;
         for(var offset:new int[][]{{0,-1},{0,1},{-1,0},{1,0}}){
             var neighbour=CityLayout.cell(new ChunkCoord(c.dimension(),c.chunkX()+offset[0],c.chunkZ()+offset[1]),p,profile);
             if(neighbour!=null&&BuildingFrontage.at(neighbour.placement(),c.chunkX(),c.chunkZ()))return true;
@@ -106,7 +106,6 @@ public final class ChaosRoadRuntime {
         return part;
     }
     public static ChaosStreetDecor.Selection decoration(ChunkCoord c,IDimensionInfo p,LostCityProfile profile,ChaosRoadPlan.Selection road){
-        if(!com.caf.lccustomcity.config.RoadPresetConfig.decorations())return null;
         var group=ChaosDefencePlan.select(p.getSeed(),c.chunkX(),c.chunkZ(),(x,z)->{
             var coord=new ChunkCoord(c.dimension(),x,z);
             return vacant(coord,p,profile)&&!frontage(coord,p,profile);

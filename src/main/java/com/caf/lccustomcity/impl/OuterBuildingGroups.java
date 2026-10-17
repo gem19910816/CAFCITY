@@ -7,8 +7,12 @@ import com.caf.lccustomcity.impl.UniquePlotPacking.Placement;
 final class OuterBuildingGroups {
     record Hole(int x,int z,int width,int depth) {}
     private final CityLayout.Cell[][] cells;
+    private final int maxWidth;
+    private final int maxLength;
     private final Map<Placement,Set<Placement>> groups=new HashMap<>();
-    OuterBuildingGroups(CityLayout.Cell[][] cells) { this.cells=cells; }
+    OuterBuildingGroups(CityLayout.Cell[][] cells, int maxWidth, int maxLength) {
+        this.cells=cells; this.maxWidth=Math.max(1,maxWidth); this.maxLength=Math.max(1,maxLength);
+    }
 
     private Set<Placement> joined(List<Placement> additions) {
         Set<Placement> joined=new HashSet<>(additions);
@@ -36,10 +40,10 @@ final class OuterBuildingGroups {
             cuts.add(start+(x?p.building().width():p.building().depth()));}
         return cuts;
     }
-    private static boolean rectangular(Set<Placement> group) {
+    private boolean rectangular(Set<Placement> group) {
         var xs=cuts(group,true);var zs=cuts(group,false);
         // Count complete buildings, not chunks. Unequal column widths/row depths are fine.
-        if(Math.min(xs.size()-1,zs.size()-1)>2||Math.max(xs.size()-1,zs.size()-1)>6)return false;
+        if(Math.min(xs.size()-1,zs.size()-1)>maxWidth||Math.max(xs.size()-1,zs.size()-1)>maxLength)return false;
         long area=0;
         for(var p:group){
             if(xs.higher(p.x())!=p.x()+p.building().width()
@@ -51,7 +55,7 @@ final class OuterBuildingGroups {
     /** Complete the missing row/column as one batch, without leaving L/T-shaped groups. */
     List<Hole> completion(Placement p) {
         var joined=joined(List.of(p));var xs=cuts(joined,true);var zs=cuts(joined,false);
-        if(Math.min(xs.size()-1,zs.size()-1)>2||Math.max(xs.size()-1,zs.size()-1)>6)return null;
+        if(Math.min(xs.size()-1,zs.size()-1)>maxWidth||Math.max(xs.size()-1,zs.size()-1)>maxLength)return null;
         for(var member:joined)
             if(xs.higher(member.x())!=member.x()+member.building().width()
                     ||zs.higher(member.z())!=member.z()+member.building().depth())return null;

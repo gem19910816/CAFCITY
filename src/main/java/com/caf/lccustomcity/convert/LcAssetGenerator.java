@@ -2,7 +2,10 @@ package com.caf.lccustomcity.convert;
 
 import com.caf.lccustomcity.config.BlockEntityContentConfig;
 import com.caf.lccustomcity.config.BuildingCountLimits;
-import com.caf.lccustomcity.config.ZoneConfig;
+import com.caf.lccustomcity.config.CityStageConfig;
+import com.caf.lccustomcity.config.StageLootConfig;
+import com.caf.lccustomcity.config.StageLayoutConfig;
+import com.caf.lccustomcity.impl.CityStageRuntime;
 import com.caf.lccustomcity.schem.SchematicData;
 import com.caf.lccustomcity.schem.SchematicReader;
 import com.google.gson.Gson;
@@ -87,6 +90,8 @@ public final class LcAssetGenerator {
 
     /** 转换结果: 相对路径(数据包内) -> JSON 文本。 */
     public static final class Output {
+        /** 每个阶段+风格独立的建筑选择器，供阶段 citystyle 覆盖使用。 */
+        public final Map<String, StageAssets> stageAssets = new LinkedHashMap<>();
         public final List<com.caf.lccustomcity.config.LayoutCatalog.Building> footprints = new ArrayList<>();
         public double outerShare = .4375;
         public final Map<String, String> files = new LinkedHashMap<>();
@@ -122,6 +127,33 @@ public final class LcAssetGenerator {
         public final List<String> errors = new ArrayList<>();
         public int partCount;
         public int paletteCount;
+
+        public static final class StageAssets {
+            public final String stage;
+            public final String style;
+            public final List<String> buildingIds = new ArrayList<>();
+            public final List<String> multiIds = new ArrayList<>();
+            public final List<String> outerBuildingIds = new ArrayList<>();
+            public final List<String> outerMultiIds = new ArrayList<>();
+            public final Map<String, List<String>> innerSubBuildingIds = new LinkedHashMap<>();
+            public final Map<String, List<String>> innerSubMultiIds = new LinkedHashMap<>();
+            public final Map<String, Map<String, BuildingCountLimits.Limit>> countLimitsSingle = new LinkedHashMap<>();
+            public final Map<String, Map<String, BuildingCountLimits.Limit>> countLimitsMulti = new LinkedHashMap<>();
+            public final Map<String, Double> zoneWeights = new LinkedHashMap<>();
+            public final Map<String, com.caf.lccustomcity.config.StagePartitionConfig.Partition> partitions = new LinkedHashMap<>();
+
+            public StageAssets(String stage, String style) {
+                this.stage = stage;
+                this.style = style;
+            }
+
+            public String key() { return stage + "\\u0000" + style; }
+            public List<String> innerSubZoneNames() {
+                java.util.SortedSet<String> all = new java.util.TreeSet<>(innerSubBuildingIds.keySet());
+                all.addAll(innerSubMultiIds.keySet());
+                return new ArrayList<>(all);
+            }
+        }
 
         /** 是否一栋建筑都没有(内城+外城、单格+多格全空)。 */
         public boolean isEmpty() {
@@ -171,12 +203,41 @@ public final class LcAssetGenerator {
     public static Output generate(Path configDir, Logger log) {
         Output out = new Output();
 
-        // 城区配置(城区配置.json): 不存在就写一份带说明的模板。
-        // 这个阶段真正用到的只有"战利品池"; 占比/数量只是解析存起来, 留给后面的 Mixin 阶段。
-        ZoneConfig zoneCfg = ZoneConfig.load(configDir, out.warnings);
         Map<String, String> lootPools = new HashMap<>();   // 池签名 -> 条件名(去重)
+        Map<String, CityStageRuntime.Geometry> geometries = new LinkedHashMap<>();
+        Map<String, StageLayoutConfig.Rules> layouts = new LinkedHashMap<>();
 
-        ScanResult scanResult = scan(configDir, out, log);
+        List<Path> sourceRoots = new ArrayList<>();
+        if (CityStageConfig.current().enabled()) {
+            for (CityStageConfig.Stage stage : CityStageConfig.current().stages().values()) {
+                if (!stage.enabled()) continue;
+                for (String style : CityStageConfig.current().stylesForStage(stage.name())) {
+                    Path stageRoot = configDir.resolve(style).resolve(stage.name());
+                    Output.StageAssets assets = new Output.StageAssets(stage.name(), style);
+                    assets.partitions.putAll(stage.partitions());
+                    out.stageAssets.put(assets.key(), assets);
+                    StageLayoutConfig.Rules layout = StageLayoutConfig.loadForStage(configDir, stage.name(), out.warnings,
+                            800, 800);
+                    layouts.put(assets.key(), layout);
+                    geometries.put(assets.key(), new CityStageRuntime.Geometry(
+                            layout.radiusMinBlocks(), layout.radiusMaxBlocks(), layout,
+                            0,
+                            Map.of(), stage.partitions()));
+                    if (stage.partitions().isEmpty()) {
+                        // Compatibility with the pre-partition layout.
+                        sourceRoots.add(stageRoot.resolve("建筑文件"));
+                    } else {
+                        for (String partition : stage.partitions().keySet()) {
+                            sourceRoots.add(stageRoot.resolve(partition).resolve("建筑文件"));
+                        }
+                    }
+                }
+            }
+        } else {
+            sourceRoots.add(configDir);
+        }
+        CityStageRuntime.installGeometries(geometries);
+        ScanResult scanResult = scanRoots(sourceRoots, out, log);
         // 报告无条件写一份 —— 包括"一个建筑都没扫到"的时候, 那正是最需要它的时候。
         // 写失败只警告(见 writeScanReport), 绝不影响生成流程。
         writeScanReport(configDir, scanResult, log);
@@ -194,11 +255,31 @@ public final class LcAssetGenerator {
 
         // 所有建筑共用这一张空 part
         addEmptyPart(out);
-        out.outerShare = (zoneCfg.outerRatio.min() + zoneCfg.outerRatio.max()) / 2;
+        out.outerShare = 0;
 
         for (Path f : files) {
             try {
-                convertOne(configDir, f, out, log, zoneCfg, lootPools);
+                Output.StageAssets stageAssets = stageAssetsFor(out, configDir, f);
+                Path assetRoot = configDir;
+                Path lootRoot = null;
+                if (stageAssets != null) {
+                    Path stageRoot = configDir.resolve(stageAssets.style).resolve(stageAssets.stage);
+                    String partition = sourcePartition(stageAssets, stageRoot, f);
+                    if (partition != null) {
+                        // Keep the partition as the logical root for zone/loot lookup.
+                        assetRoot = stageRoot.resolve(partition);
+                        lootRoot = stageRoot.resolve(partition);
+                    } else {
+                        assetRoot = stageRoot.resolve("建筑文件");
+                        lootRoot = stageRoot;
+                    }
+                }
+                StageLootConfig stageLoot = lootRoot == null
+                        ? StageLootConfig.empty() : StageLootConfig.load(lootRoot, out.warnings);
+                StageLayoutConfig.Rules layout = stageAssets == null
+                        ? StageLayoutConfig.defaults(800, 800)
+                        : layouts.getOrDefault(stageAssets.key(), StageLayoutConfig.defaults(800, 800));
+                convertOne(assetRoot, f, out, log, layout, stageLoot, lootPools, stageAssets);
             } catch (Exception e) {
                 String msg = f.getFileName() + " 转换失败: " + e.getMessage();
                 out.errors.add(msg);
@@ -206,26 +287,23 @@ public final class LcAssetGenerator {
             }
         }
 
-        // ---- 内城子分区占比(阶段 2b) ----
-        // 只对真正存在建筑文件夹的子分区登记; 风格名规则与 CityStylePatcher.generateSubZoneStyles
-        // 严格对齐(caf_zone_inner_<子分区名短哈希>)。区间 [min,max] 取中点 —— 转换期就折叠成
-        // 单个 double, 运行时不再碰任何随机。占比 <= 0 → 警告并按 1.0(不登记)。
-        ZoneConfig.Zone innerZone = zoneCfg.zones.get("内城");
-        if (innerZone != null) {
-            // 用并集: 全是多格建筑的子分区只在 innerSubMultiIds 里, 只查单格表会漏掉它的占比
-            List<String> subZones = out.innerSubZoneNames();
-            for (String subZone : subZones) {
-                ZoneConfig.SubZone sub = innerZone.subZones().get(subZone);
-                if (sub == null || sub.ratio() == null) {
-                    continue;   // 没配占比 → 运行时按 1.0 均分
-                }
-                double w = (sub.ratio().min() + sub.ratio().max()) / 2.0;
-                if (!(w > 0) || Double.isNaN(w)) {
-                    out.warnings.add("城区.内城.分区." + subZone + " 的占比(" + sub.ratio().min()
-                            + "~" + sub.ratio().max() + ")不大于 0, 已按均分处理");
-                    continue;
-                }
-                out.zoneWeights.put(CityStylePatcher.ZONE_STYLE_PREFIX + shortHash(subZone), w);
+        // Add one editable rule entry for every discovered source file. Existing values are kept.
+        for (Output.StageAssets assets : out.stageAssets.values()) {
+            List<String> names = filesForStage(configDir, files, assets);
+            StageLayoutConfig.addBuildingTemplates(configDir, assets.stage, names);
+        }
+
+        // 汇总阶段+风格专属的数量限制，运行时按阶段 citystyle 名查询。
+        for (Output.StageAssets assets : out.stageAssets.values()) {
+            out.countLimitsSingle.putAll(assets.countLimitsSingle);
+            out.countLimitsMulti.putAll(assets.countLimitsMulti);
+            if (assets.buildingIds.isEmpty()) {
+                String fallbackId = "s" + shortHash(assets.stage + "|" + assets.style) + "_fallback_empty";
+                out.putAsset("lostcities/buildings/" + fallbackId + ".json", fallbackBuildingJson());
+                assets.buildingIds.add(fallbackId);
+                out.displayNames.put(fallbackId, assets.style + "\\" + assets.stage + "\\(自动空气占位)");
+                out.warnings.add("阶段 " + assets.stage + " / 风格 " + assets.style
+                        + " 没有单格建筑，已加入空气占位建筑以避免城市生成崩溃");
             }
         }
 
@@ -420,6 +498,49 @@ public final class LcAssetGenerator {
         }
         res.files.sort(Comparator.comparing(p -> p.toString().toLowerCase(Locale.ROOT)));
         return res;
+    }
+
+    private static ScanResult scanRoots(List<Path> roots, Output out, Logger log) {
+        ScanResult combined = new ScanResult();
+        for (Path root : roots) {
+            ScanResult result = scan(root, out, log);
+            combined.files.addAll(result.files);
+            combined.candidates += result.candidates;
+            result.ignoredCounts.forEach((key, value) -> combined.ignoredCounts.merge(key, value, Integer::sum));
+            result.ignoredSamples.forEach((key, value) -> {
+                List<String> samples = combined.ignoredSamples.computeIfAbsent(key, ignored -> new ArrayList<>());
+                for (String sample : value) if (samples.size() < IGNORE_SAMPLE_LIMIT) samples.add(root.getFileName() + "/" + sample);
+            });
+            combined.prunedDirs.addAll(result.prunedDirs);
+        }
+        combined.files.sort(Comparator.comparing(p -> p.toString().toLowerCase(Locale.ROOT)));
+        return combined;
+    }
+
+    private static Output.StageAssets stageAssetsFor(Output out, Path configDir, Path file) {
+        for (Output.StageAssets assets : out.stageAssets.values()) {
+            Path root = configDir.resolve(assets.style).resolve(assets.stage).normalize();
+            if (file.normalize().startsWith(root)) return assets;
+        }
+        return null;
+    }
+
+    private static String sourcePartition(Output.StageAssets assets, Path stageRoot, Path file) {
+        for (String partition : assets.partitions.keySet()) {
+            Path root = stageRoot.resolve(partition).resolve("建筑文件").normalize();
+            if (file.normalize().startsWith(root)) return partition;
+        }
+        return null;
+    }
+
+    private static List<String> filesForStage(Path configDir, List<Path> files, Output.StageAssets assets) {
+        Path stageRoot = configDir.resolve(assets.style).resolve(assets.stage).normalize();
+        return files.stream()
+                .filter(path -> path.normalize().startsWith(stageRoot))
+                .map(path -> path.getFileName().toString())
+                .distinct()
+                .sorted()
+                .toList();
     }
 
     /** 报告/日志里用的相对路径(原样用平台分隔符, 玩家在资源管理器里看到的就是这个)。 */
@@ -708,6 +829,12 @@ public final class LcAssetGenerator {
     private static String subZoneOf(Path configDir, Path file) {
         Path rel = configDir.relativize(file);
         int depth = rel.getNameCount();
+        if (depth >= 2 && rel.getName(0).toString().equals("建筑文件")
+                && configDir.getFileName() != null
+                && !configDir.getFileName().toString().equals("建筑文件")) {
+            // New layout: 风格/阶段/分区/建筑文件/建筑.nbt.
+            return configDir.getFileName().toString();
+        }
         if (depth >= 3) {
             return rel.getName(1).toString();               // 内城\商业区\x.schem / 外城\民房\x.schem
         }
@@ -799,7 +926,8 @@ public final class LcAssetGenerator {
     // ------------------------------------------------------------------
 
     private static void convertOne(Path configDir, Path file, Output out, Logger log,
-                                   ZoneConfig zoneCfg, Map<String, String> lootPools) throws IOException {
+                                   StageLayoutConfig.Rules layout, StageLootConfig stageLoot,
+                                   Map<String, String> lootPools, Output.StageAssets stageAssets) throws IOException {
         SchematicData data = SchematicReader.read(file, out.warnings);
         String incomplete=SourceCompleteness.warning(file.getFileName().toString(),data);
         if(incomplete!=null)out.warnings.add(incomplete);
@@ -822,13 +950,18 @@ public final class LcAssetGenerator {
         }
 
         String id = idFor(configDir, file);
+        if (stageAssets != null) {
+            id = "s" + shortHash(stageAssets.stage + "|" + stageAssets.style) + "_" + id;
+        }
         // 记一份"资产 id -> 玩家原始路径", 给建筑生成次数统计报告显示用(sanitize 会把中文抹掉)
         out.displayNames.put(id, configDir.relativize(file).toString());
         int floors = floorsFor(fy);
         int topHeight = fy - FLOOR_HEIGHT * floors;   // <=0 表示顶层需要补空气
 
         // ---- 0. 战利品池: 单建筑覆盖 > 分区池; 都没有 = null(容器保持失落城市默认) ----
-        ZoneConfig.LootPool lootPool = zoneCfg.lootFor(zoneOf(configDir, file), subZoneOf(configDir, file),
+        String zoneName = zoneOf(configDir, file);
+        String subZoneName = subZoneOf(configDir, file);
+        com.caf.lccustomcity.config.LootPoolConfig.LootPool lootPool = stageLoot.forBuilding(zoneName, subZoneName,
                 file.getFileName().toString());
         String lootCondition = lootPool == null ? null : LootSupport.register(out, lootPools, lootPool);
 
@@ -893,13 +1026,16 @@ public final class LcAssetGenerator {
         }
 
         // ---- 4. 多格建筑 ----
-        boolean outer = isOuter(configDir, file);
-        // 子分区只有内城参与(连续分区目前只切内城); 外城暂不再细分
-        String subZone = outer ? null : subZoneOf(configDir, file);
-        String layoutStyle = outer ? "citystyle_border" : subZone == null ? "citystyle_common"
+        boolean outer = false;
+        String subZone = subZoneOf(configDir, file);
+        String layoutStyle = subZone == null ? "citystyle_common"
                 : CityStylePatcher.ZONE_STYLE_PREFIX + shortHash(subZone);
+        String stageCityStyle = stageAssets == null ? layoutStyle
+                : CityStageConfig.cityStyleName(stageAssets.stage, stageAssets.style,
+                subZone == null ? "common" : "zone_" + shortHash(subZone));
         out.footprints.add(new com.caf.lccustomcity.config.LayoutCatalog.Building(
-                NS + ":" + id, layoutStyle, subZone, outer, cellsX, cellsZ));
+                NS + ":" + id, stageCityStyle, subZone, outer, cellsX, cellsZ, 0,
+                stageAssets == null ? null : stageAssets.stage, file.getFileName().toString()));
 
         // ---- 4.5 数量上下限登记(阶段 3 Mixin 用) ----
         // 键必须是 Mixin 运行时能拿到的两样东西: 城市风格名 + 建筑资产 id。
@@ -908,10 +1044,10 @@ public final class LcAssetGenerator {
         // 注意: 这里只查配置、先不登记 —— 登记在下面的 单格/多格 分流里进行,
         // 多格建筑进 countLimitsMulti, 单格进 countLimitsSingle, 两张表绝不混装
         // (混装会让单格选择路径强制返回多格 id → 失落城市查 buildings 注册表拿到 null → 崩)。
-        ZoneConfig.CountRange count = zoneCfg.countFor(zoneOf(configDir, file), subZoneOf(configDir, file),
-                file.getFileName().toString());
-        String limitStyleName = count == null ? null : (outer ? "citystyle_border"
-                : (subZone != null ? CityStylePatcher.ZONE_STYLE_PREFIX + shortHash(subZone) : "citystyle_common"));
+        StageLayoutConfig.BuildingRule buildingRule = layout == null ? null
+                : layout.building(file.getFileName().toString());
+        String limitStyleName = buildingRule == null || !buildingRule.hasCount() ? null : (stageAssets != null ? stageCityStyle : (outer ? "citystyle_border"
+                : (subZone != null ? CityStylePatcher.ZONE_STYLE_PREFIX + shortHash(subZone) : "citystyle_common")));
         if (cellsX > 1 || cellsZ > 1) {
             JsonArray rows = new JsonArray();
             for (int ix = 0; ix < cellsX; ix++) {
@@ -938,22 +1074,28 @@ public final class LcAssetGenerator {
                 JsonObject variant=new JsonObject();variant.addProperty("dimx",rw);variant.addProperty("dimz",rd);
                 variant.add("buildings",rotatedRows);out.putAsset("lostcities/multibuildings/"+id+"_r"+turn+".json",variant);
             }
-            (outer ? out.outerMultiIds : out.multiIds).add(id);
+            (outer ? stageAssets == null ? out.outerMultiIds : stageAssets.outerMultiIds
+                    : stageAssets == null ? out.multiIds : stageAssets.multiIds).add(id);
             if (subZone != null) {
-                out.innerSubMultiIds.computeIfAbsent(subZone, k -> new ArrayList<>()).add(id);
+                (stageAssets == null ? out.innerSubMultiIds : stageAssets.innerSubMultiIds)
+                        .computeIfAbsent(subZone, k -> new ArrayList<>()).add(id);
             }
             if (limitStyleName != null) {
-                out.countLimitsMulti.computeIfAbsent(limitStyleName, k -> new LinkedHashMap<>())
-                        .put(NS + ":" + id, new BuildingCountLimits.Limit(count.min(), count.max()));
+                (stageAssets == null ? out.countLimitsMulti : stageAssets.countLimitsMulti)
+                        .computeIfAbsent(limitStyleName, k -> new LinkedHashMap<>())
+                        .put(NS + ":" + id, new BuildingCountLimits.Limit(buildingRule.minimumCount(), buildingRule.maximumCount()));
             }
         } else {
-            (outer ? out.outerBuildingIds : out.buildingIds).add(id);
+            (outer ? stageAssets == null ? out.outerBuildingIds : stageAssets.outerBuildingIds
+                    : stageAssets == null ? out.buildingIds : stageAssets.buildingIds).add(id);
             if (subZone != null) {
-                out.innerSubBuildingIds.computeIfAbsent(subZone, k -> new ArrayList<>()).add(id);
+                (stageAssets == null ? out.innerSubBuildingIds : stageAssets.innerSubBuildingIds)
+                        .computeIfAbsent(subZone, k -> new ArrayList<>()).add(id);
             }
             if (limitStyleName != null) {
-                out.countLimitsSingle.computeIfAbsent(limitStyleName, k -> new LinkedHashMap<>())
-                        .put(NS + ":" + id, new BuildingCountLimits.Limit(count.min(), count.max()));
+                (stageAssets == null ? out.countLimitsSingle : stageAssets.countLimitsSingle)
+                        .computeIfAbsent(limitStyleName, k -> new LinkedHashMap<>())
+                        .put(NS + ":" + id, new BuildingCountLimits.Limit(buildingRule.minimumCount(), buildingRule.maximumCount()));
             }
         }
 

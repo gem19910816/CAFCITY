@@ -87,23 +87,16 @@ if ($files.Count -eq 0) { Fail "No .java files found under $srcDir" }
 Write-Host ""
 Write-Host "Compiling $($files.Count) java file(s) with the same flags as build.ps1 ..." -ForegroundColor Cyan
 
-# Match build.ps1's two-stage compile: impl also depends on Minecraft and LC.
-$mixinDir = Join-Path $srcDir 'com\caf\lccustomcity\mixin'
-$implDir = Join-Path $srcDir 'com\caf\lccustomcity\impl'
-$ordinary = @($files | Where-Object { -not $_.StartsWith("$mixinDir\") -and -not $_.StartsWith("$implDir\") })
-$runtime = @($files | Where-Object { $_.StartsWith("$mixinDir\") -or $_.StartsWith("$implDir\") })
-& $javac -encoding UTF-8 -nowarn -d $classes -cp $cp $ordinary
+# Match build.ps1: compile all mutually dependent packages in one pass.
+$realFile = Join-Path $root 'build\real-cp.txt'
+if (-not (Test-Path -LiteralPath $realFile)) { Fail 'build\real-cp.txt is required' }
+$real = (Get-Content -LiteralPath $realFile -Raw).Trim()
+$mixinJar = Find-Newest (Join-Path $libs 'org\spongepowered\mixin') 'mixin-*.jar'
+$lcJar = $local['lostcities_jar']
+if (-not $mixinJar -or -not $lcJar) { Fail 'Mixin / Lost Cities jar missing' }
+$fullCp = "$cp;$real;$mixinJar;$lcJar"
+& $javac -encoding UTF-8 -nowarn -proc:none -d $classes -cp $fullCp $files
 $rc = $LASTEXITCODE
-if ($rc -eq 0 -and $runtime.Count -gt 0) {
-    $realFile = Join-Path $root 'build\real-cp.txt'
-    if (-not (Test-Path -LiteralPath $realFile)) { Fail 'build\real-cp.txt is required' }
-    $real = (Get-Content -LiteralPath $realFile -Raw).Trim()
-    $mixinJar = Find-Newest (Join-Path $libs 'org\spongepowered\mixin') 'mixin-*.jar'
-    $lcJar = (Get-ChildItem -LiteralPath $local['deploy_mods'] -Filter '*lostcities*.jar' -File | Select-Object -First 1).FullName
-    if (-not $mixinJar -or -not $lcJar) { Fail 'Mixin / Lost Cities jar missing' }
-    & $javac -encoding UTF-8 -nowarn -proc:none -d $classes -cp "$classes;$cp;$real;$mixinJar;$lcJar" $runtime
-    $rc = $LASTEXITCODE
-}
 
 Write-Host ""
 if ($rc -ne 0) {

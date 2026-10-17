@@ -74,7 +74,11 @@ public abstract class MultiChunkGapMixin {
             }
 
             // 2) 大楼之间强制留一格空隙
-            if (MultiGapRule.ringOccupied(this, x, z, building.getDimX(), building.getDimZ())) {
+            Boolean partitionGap = com.caf.lccustomcity.impl.CityLayout.partitionLargeBuildingGap(
+                    new ChunkCoord(topleft.dimension(), absX, absZ), provider, profile);
+            boolean gapEnabled = partitionGap == null
+                    ? com.caf.lccustomcity.config.GapConfig.enabled() : partitionGap;
+            if (MultiGapRule.ringOccupied(this, x, z, building.getDimX(), building.getDimZ(), gapEnabled)) {
                 if (!caf$loggedOnce) {
                     caf$loggedOnce = true;
                     CAF_LOGGER.info("[CAF-LC] 大楼之间强制留一格空隙已生效: 多格建筑之间至少隔一个区块");

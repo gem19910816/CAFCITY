@@ -99,5 +99,6 @@ public abstract class CityFactorCacheMixin {
         CityFactorCache.clear();
         com.caf.lccustomcity.impl.CityLayout.clear();
         com.caf.lccustomcity.impl.SpawnCityRule.clear();
+        com.caf.lccustomcity.impl.CityStageRuntime.clearEligibilityCache();
     }
 }

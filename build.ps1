@@ -191,69 +191,46 @@ if (Test-Path -LiteralPath $classes) { Remove-Item -LiteralPath $classes -Recurs
 New-Item -ItemType Directory -Force -Path $classes | Out-Null
 
 $srcDir = Join-Path $root 'src\main\java'
-# Split sources into two groups: Mixin classes (com\caf\lccustomcity\mixin) and their
-# helper classes (com\caf\lccustomcity\impl) both need the wide classpath (they touch
-# Minecraft/LostCities classes); everything else stays on the 4 basic jars.
-$mixinDir = Join-Path $srcDir 'com\caf\lccustomcity\mixin'
-$implDir = Join-Path $srcDir 'com\caf\lccustomcity\impl'
 $all = @(Get-ChildItem -LiteralPath $srcDir -Recurse -Filter *.java -File | ForEach-Object { $_.FullName })
 if ($all.Count -eq 0) { Fail "No .java files found under $srcDir" }
-$mixinFiles = @($all | Where-Object { $_.StartsWith("$mixinDir\") -or $_.StartsWith("$implDir\") })
-$files = @($all | Where-Object { -not $_.StartsWith("$mixinDir\") -and -not $_.StartsWith("$implDir\") })
+$mixinJar = Find-Newest (Join-Path $libs 'org\spongepowered\mixin') 'mixin-*.jar'
+if (-not $mixinJar) { Fail "Mixin sources found but no mixin-*.jar under $libs\org\spongepowered\mixin" }
 
-if ($files.Count -gt 0) {
-    Write-Host "Compiling $($files.Count) java file(s)..." -ForegroundColor Cyan
-    # Do not pipe or capture javac output - let it print straight to the console.
-    & $javac -encoding UTF-8 -nowarn -d $classes -cp $cp $files
-    if ($LASTEXITCODE -ne 0) { Fail "javac reported errors (see above)." }
-}
-
-# ---- mixin sources (only when the mixin package exists) ----
-if ($mixinFiles.Count -gt 0) {
-    $mixinJar = Find-Newest (Join-Path $libs 'org\spongepowered\mixin') 'mixin-*.jar'
-    if (-not $mixinJar) { Fail "Mixin sources found but no mixin-*.jar under $libs\org\spongepowered\mixin" }
-
-    # Lost Cities jar is a local compile-time input, never a deployment target.
-    # If the configured path is stale, fall back to the newest *lostcities*.jar
-    # sitting in the same folder (launchers often rename jars with a CN prefix).
-    $lcJar = $local['lostcities_jar']
-    if (-not $lcJar -or -not (Test-Path -LiteralPath $lcJar)) {
-        if ($lcJar) {
-            $modsDir = [System.IO.Path]::GetDirectoryName($lcJar)
-            if ($modsDir -and (Test-Path -LiteralPath $modsDir)) {
-                $found = Get-ChildItem -LiteralPath $modsDir -Filter '*lostcities*.jar' -File -ErrorAction SilentlyContinue |
-                         Sort-Object LastWriteTime -Descending | Select-Object -First 1
-                if ($found) {
-                    Write-Host "lostcities_jar not found - using $($found.Name)" -ForegroundColor Yellow
-                    $lcJar = $found.FullName
-                }
+# Lost Cities is a compile-time input only. Its runtime dependency is declared
+# in neoforge.mods.toml; this script never copies the jar into a game instance.
+$lcJar = $local['lostcities_jar']
+if (-not $lcJar -or -not (Test-Path -LiteralPath $lcJar)) {
+    if ($lcJar) {
+        $modsDir = [System.IO.Path]::GetDirectoryName($lcJar)
+        if ($modsDir -and (Test-Path -LiteralPath $modsDir)) {
+            $found = Get-ChildItem -LiteralPath $modsDir -Filter '*lostcities*.jar' -File -ErrorAction SilentlyContinue |
+                     Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($found) {
+                Write-Host "lostcities_jar not found - using $($found.Name)" -ForegroundColor Yellow
+                $lcJar = $found.FullName
             }
         }
-        if (-not $lcJar -or -not (Test-Path -LiteralPath $lcJar)) {
-            Fail "Mixin sources found but lostcities_jar is missing in local.properties"
-        }
     }
-
-    $realCpFile = Join-Path $root 'build\real-cp.txt'
-    if (-not (Test-Path -LiteralPath $realCpFile)) {
-        Write-Host "build\real-cp.txt not found - generating it from the instance ..." -ForegroundColor Yellow
-        $gradleProps = Read-Props (Join-Path $root 'gradle.properties')
-        $instanceDir = [System.IO.Path]::GetDirectoryName([System.IO.Path]::GetDirectoryName($lcJar))
-        New-RealClasspathFile -OutFile $realCpFile -Libs $libs -Local $local -McVersion $gradleProps['minecraft_version'] -InstanceDir $instanceDir
-        if (-not (Test-Path -LiteralPath $realCpFile)) {
-            Fail "Could not generate build\real-cp.txt."
-        }
+    if (-not $lcJar -or -not (Test-Path -LiteralPath $lcJar)) {
+        Fail "Mixin sources found but lostcities_jar is missing in local.properties"
     }
-    $realCp = (Get-Content -LiteralPath $realCpFile -Raw -Encoding UTF8).Trim()
-    $cpMixin = @($cp, $mixinJar, $lcJar, $realCp, $classes) -join ';'
-
-    Write-Host "Compiling $($mixinFiles.Count) mixin file(s)..." -ForegroundColor Cyan
-    # -proc:none disables Mixin's annotation processor. That processor only
-    # generates the obfuscation refmap, which NeoForge 1.21 (mojmap) does not
-    # need, and it would crash here on a missing Gson dependency.
-    & $javac -encoding UTF-8 -nowarn -proc:none -d $classes -cp $cpMixin $mixinFiles
-    if ($LASTEXITCODE -ne 0) { Fail "javac reported errors in mixin sources (see above)." }
 }
+
+$realCpFile = Join-Path $root 'build\real-cp.txt'
+if (-not (Test-Path -LiteralPath $realCpFile)) {
+    Write-Host "build\real-cp.txt not found - generating it from the instance ..." -ForegroundColor Yellow
+    $gradleProps = Read-Props (Join-Path $root 'gradle.properties')
+    $instanceDir = [System.IO.Path]::GetDirectoryName([System.IO.Path]::GetDirectoryName($lcJar))
+    New-RealClasspathFile -OutFile $realCpFile -Libs $libs -Local $local -McVersion $gradleProps['minecraft_version'] -InstanceDir $instanceDir
+    if (-not (Test-Path -LiteralPath $realCpFile)) { Fail "Could not generate build\real-cp.txt." }
+}
+$realCp = (Get-Content -LiteralPath $realCpFile -Raw -Encoding UTF8).Trim()
+$fullCp = @($cp, $mixinJar, $lcJar, $realCp) -join ';'
+Write-Host "Compiling $($all.Count) java file(s) with the full game classpath..." -ForegroundColor Cyan
+# Compile together because asset generation, command handlers and runtime code
+# share types across packages; separate passes break those valid references.
+& $javac -encoding UTF-8 -nowarn -proc:none -d $classes -cp $fullCp $all
+if ($LASTEXITCODE -ne 0) { Fail "javac reported errors (see above)." }
 
 # ---- resources ----
 $resDir = Join-Path $root 'src\main\resources'

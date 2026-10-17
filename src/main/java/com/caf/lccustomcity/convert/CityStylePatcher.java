@@ -150,8 +150,13 @@ public final class CityStylePatcher {
                 // 城区路由: 外城(border)用外城建筑, 内城(common)用内城建筑。
                 // 外城没建筑时回退用内城的 —— 这样"没建外城文件夹"的玩家行为完全不变。
                 boolean outerZone = fileName.equals("citystyle_border.json");
-                List<String> singleIds = outerZone && !out.outerBuildingIds.isEmpty() ? out.outerBuildingIds : out.buildingIds;
-                List<String> multiIdList = outerZone && !out.outerMultiIds.isEmpty() ? out.outerMultiIds : out.multiIds;
+                var activeStage = com.caf.lccustomcity.config.CityStageConfig.current().activeStage();
+                boolean unified = com.caf.lccustomcity.config.CityStageConfig.current().enabled()
+                        && activeStage != null && !activeStage.useInnerOuter();
+                List<String> singleIds = unified ? concat(out.buildingIds, out.outerBuildingIds)
+                        : outerZone && !out.outerBuildingIds.isEmpty() ? out.outerBuildingIds : out.buildingIds;
+                List<String> multiIdList = unified ? concat(out.multiIds, out.outerMultiIds)
+                        : outerZone && !out.outerMultiIds.isEmpty() ? out.outerMultiIds : out.multiIds;
 
                 if (singleIds.isEmpty()) {
                     log.warn("[CAF-LC] 没有单格建筑, {} 的 buildings 列表将被清空", entry.getName());
@@ -192,6 +197,7 @@ public final class CityStylePatcher {
         // 只换 selectors.buildings / multibuildings 为该子分区的建筑, 其余(街道路图纸、
         // 调色板、清空过的 fronts/parks)全部继承覆盖后的 citystyle_common。
         patched.addAll(generateSubZoneStyles(patchedCommon, out, log));
+        patched.addAll(generateStageStyles(patchedCommon, out, log));
 
         if (patched.isEmpty()) {
             log.warn("[CAF-LC] 没有任何城市风格被覆盖 —— 城市里仍会出现原版建筑");
@@ -344,6 +350,47 @@ public final class CityStylePatcher {
         return generated;
     }
 
+    /** 为每个阶段+风格生成隔离的 citystyle，避免不同阶段同名建筑互相混用。 */
+    private static List<String> generateStageStyles(JsonObject patchedCommon, LcAssetGenerator.Output out, Logger log) {
+        List<String> generated = new ArrayList<>();
+        if (patchedCommon == null) return generated;
+        for (LcAssetGenerator.Output.StageAssets assets : out.stageAssets.values()) {
+            if (assets.buildingIds.isEmpty() && assets.multiIds.isEmpty()
+                    && assets.outerBuildingIds.isEmpty() && assets.outerMultiIds.isEmpty()) continue;
+            generated.addAll(generateStageRoleStyle(patchedCommon, out, assets, "common",
+                    concat(assets.buildingIds, assets.outerBuildingIds),
+                    concat(assets.multiIds, assets.outerMultiIds), log));
+            generated.addAll(generateStageRoleStyle(patchedCommon, out, assets, "border",
+                    assets.outerBuildingIds.isEmpty() ? assets.buildingIds : assets.outerBuildingIds,
+                    assets.outerMultiIds.isEmpty() ? assets.multiIds : assets.outerMultiIds, log));
+            java.util.SortedSet<String> zones = new java.util.TreeSet<>(assets.innerSubZoneNames());
+            zones.addAll(assets.partitions.keySet());
+            for (String zone : zones) {
+                List<String> singles = assets.innerSubBuildingIds.getOrDefault(zone, List.of());
+                List<String> multis = assets.innerSubMultiIds.getOrDefault(zone, List.of());
+                generated.addAll(generateStageRoleStyle(patchedCommon, out, assets,
+                        "zone_" + LcAssetGenerator.shortHash(zone), singles, multis, log));
+            }
+        }
+        return generated;
+    }
+
+    private static List<String> generateStageRoleStyle(JsonObject template, LcAssetGenerator.Output out,
+                                                       LcAssetGenerator.Output.StageAssets assets, String role,
+                                                       List<String> singles, List<String> multis, Logger log) {
+        String name = com.caf.lccustomcity.config.CityStageConfig.cityStyleName(assets.stage, assets.style, role);
+        JsonObject style = template.deepCopy();
+        style.addProperty("style", DEFAULT_STYLE);
+        JsonObject selectors = style.getAsJsonObject("selectors");
+        selectors.add("buildings", toSelectorArray(singles));
+        selectors.add("multibuildings", toSelectorArray(multis));
+        String fileName = name + ".json";
+        out.putExternal(CITYSTYLE_WRITE_DIR + fileName, style);
+        log.info("[CAF-LC] 阶段 {} / 风格 {} -> 城市风格 {} (单格 {}, 多格 {})",
+                assets.stage, assets.style, fileName, singles.size(), multis.size());
+        return List.of(fileName);
+    }
+
     /** 构造 [{"factor":1.0,"value":"命名空间:id"}, ...]。 */
     private static JsonArray toSelectorArray(List<String> ids) {
         JsonArray arr = new JsonArray();
@@ -354,5 +401,12 @@ public final class CityStylePatcher {
             arr.add(o);
         }
         return arr;
+    }
+
+    private static List<String> concat(List<String> first, List<String> second) {
+        List<String> result = new ArrayList<>(first.size() + second.size());
+        result.addAll(first);
+        second.stream().filter(id -> !result.contains(id)).forEach(result::add);
+        return result;
     }
 }

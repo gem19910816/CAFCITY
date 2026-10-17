@@ -1,5 +1,6 @@
 package com.caf.lccustomcity.mixin;
 
+import com.caf.lccustomcity.config.CityStageConfig;
 import com.caf.lccustomcity.impl.CityLayout;
 import com.caf.lccustomcity.impl.LayoutPlacement;
 import mcjty.lostcities.api.LostChunkCharacteristics;
@@ -27,6 +28,13 @@ public abstract class CityLayoutMixin {
                                       CallbackInfoReturnable<LostChunkCharacteristics> cir) {
         var c=cir.getReturnValue();
         if(c==null||!c.isCity)return;
+        if (CityStageConfig.current().enabled() && !CityLayout.enabledFor(coord, provider, provider.getProfile())) {
+            // A native Lost Cities center rejected by the active stage rules must
+            // not fall back to the original building list.
+            c.isCity = false;
+            c.couldHaveBuilding = false;
+            return;
+        }
         var cell=CityLayout.cell(coord,provider,provider.getProfile());
         if(cell==null)return;
         c.couldHaveBuilding=cell.placement()!=null;
@@ -47,7 +55,13 @@ public abstract class CityLayoutMixin {
             at=@At("RETURN"),cancellable=true,require=0)
     private static void caf$circularCity(ChunkCoord coord,IDimensionInfo provider,LostCityProfile profile,
                                           CallbackInfoReturnable<Boolean> cir) {
-        if(CityLayout.enabled(provider,profile)) cir.setReturnValue(!BuildingInfo.isVoidChunk(coord,provider)
-                && (CityLayout.predefined(coord,provider) || CityLayout.center(coord,provider,profile)!=null));
+        if (CityLayout.enabled(provider, profile)) {
+            if (CityStageConfig.current().enabled() && !CityLayout.enabledFor(coord, provider, profile)) {
+                cir.setReturnValue(false);
+                return;
+            }
+            if (CityLayout.enabledFor(coord,provider,profile)) cir.setReturnValue(!BuildingInfo.isVoidChunk(coord,provider)
+                    && (CityLayout.predefined(coord,provider) || CityLayout.center(coord,provider,profile)!=null));
+        }
     }
 }

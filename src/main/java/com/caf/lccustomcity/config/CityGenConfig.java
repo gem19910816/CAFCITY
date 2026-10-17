@@ -3,6 +3,8 @@ package com.caf.lccustomcity.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -18,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 解析 {@code config/CAF失落城市配置/城市生成配置.json} —— 强制覆盖失落城市配置档的那 43 项设置。
+ * 解析根配置 {@code 城市风格配置.json/城市生成配置} —— 强制覆盖失落城市配置档的那 43 项设置。
  *
  * <p>以前这些值写死在 {@code LcCustomCityMod.FORCED_PROFILE_VALUES} 里, 玩家想改只能找作者。
  * 现在它们由本文件控制; {@code FORCED_PROFILE_VALUES} 仍保留, 作为"内置默认值"
@@ -67,7 +69,6 @@ public final class CityGenConfig {
     public static final String SEC_TERRAIN = "地形过渡";
     public static final String SEC_DENSITY = "城市大小与密度";
     public static final String SEC_BUILDING = "建筑生成";
-    public static final String SEC_INNER_OUTER = "内外城";
 
     public static final List<Entry> ENTRIES = List.of(
             // ---- 破坏与废墟 ----
@@ -98,8 +99,6 @@ public final class CityGenConfig {
             // ---- 城市大小与密度 ----
             new Entry(SEC_DENSITY, "城市出现几率", "CITY_CHANCE", Type.DOUBLE, "每个区块成为城心的几率, 0.01=1%"),
             new Entry(SEC_DENSITY, "城市阈值", "CITY_THRESHOLD", Type.FLOAT, "城市因子高于此才算城里"),
-            new Entry(SEC_DENSITY, "城市最小半径", "CITY_MINRADIUS", Type.INT, "单位: 方块(不是区块格子数)。失落城市拿它和到城心的方块距离直接比较"),
-            new Entry(SEC_DENSITY, "城市最大半径", "CITY_MAXRADIUS", Type.INT, "单位: 方块(不是区块格子数)。16 方块 = 1 区块"),
             new Entry(SEC_DENSITY, "柏林噪声缩放", "CITY_PERLIN_SCALE", Type.DOUBLE, "城市分布噪声(城市出现几率为 -1 时才用)"),
             new Entry(SEC_DENSITY, "柏林噪声偏移", "CITY_PERLIN_OFFSET", Type.DOUBLE, "同上"),
             new Entry(SEC_DENSITY, "柏林噪声内部缩放", "CITY_PERLIN_INNERSCALE", Type.DOUBLE, "同上"),
@@ -114,10 +113,7 @@ public final class CityGenConfig {
             new Entry(SEC_BUILDING, "公园几率", "PARK_CHANCE", Type.FLOAT, "本模组已清空公园内容, 此项实际无影响"),
             new Entry(SEC_BUILDING, "走廊几率", "CORRIDOR_CHANCE", Type.FLOAT, "地铁走廊"),
             new Entry(SEC_BUILDING, "桥梁几率", "BRIDGE_CHANCE", Type.FLOAT, "高架桥"),
-            new Entry(SEC_BUILDING, "喷泉几率", "FOUNTAIN_CHANCE", Type.FLOAT, "街道喷泉"),
-            // ---- 内外城 ----
-            new Entry(SEC_INNER_OUTER, "外城阈值", "CITY_STYLE_THRESHOLD", Type.FLOAT, "城市因子低于此算外城(用外城风格), -1=关(全城内城)"),
-            new Entry(SEC_INNER_OUTER, "外城风格", "CITY_STYLE_ALTERNATIVE", Type.STRING, "外城用的城市风格名, 默认 citystyle_border")
+            new Entry(SEC_BUILDING, "喷泉几率", "FOUNTAIN_CHANCE", Type.FLOAT, "街道喷泉")
     );
 
     /** 每个分组的说明, 写进模板的 {@code _说明} 字段。 */
@@ -126,8 +122,7 @@ public final class CityGenConfig {
             SEC_HEIGHT, "城市地面高度。默认: 全城锁 0 级、地基统一在 Y=71, 不随地形起伏(平坦城市)。",
             SEC_TERRAIN, "城市边缘的自然地形向城市地面过渡的幅度(nodamage 档同款)。",
             SEC_DENSITY, "城市多大、多密(nodamage 档同款, 保证任何配置档选出来观感一致)。",
-            SEC_BUILDING, "建筑密度、楼层数、街道设施(nodamage 档同款)。",
-            SEC_INNER_OUTER, "外圈算外城, 用外城风格(默认 citystyle_border); 阈值 -1 = 全城内城。"
+            SEC_BUILDING, "建筑密度、楼层数、街道设施(nodamage 档同款)。"
     );
 
     private CityGenConfig() {
@@ -202,6 +197,30 @@ public final class CityGenConfig {
         }
     }
 
+    /** Reads shared Lost Cities profile settings from the root city configuration. */
+    public static Map<String, Object> loadRoot(Path configDir, Map<String, Object> defaults,
+                                               List<String> warnings) {
+        JsonObject root = RootConfigFile.read(configDir, warnings);
+        JsonElement section = root.get("城市生成配置");
+        if (section == null || !section.isJsonObject()) return defaultsOnly(defaults);
+        try {
+            return parse(section.getAsJsonObject(), defaults, warnings);
+        } catch (RuntimeException e) {
+            warnings.add(CityStageConfig.FILE_NAME + ".城市生成配置 解析失败，使用内置默认值: " + e.getMessage());
+            return defaultsOnly(defaults);
+        }
+    }
+
+    /** Profile-only template for the root document; stage layout is stored per stage. */
+    public static JsonObject profileTemplate(Map<String, Object> defaults) {
+        JsonObject root = templateJson(defaults);
+        root.addProperty("_说明", "城市生成参数会强制写入每一个失落城市配置档。删掉某一项即使用该项的内置默认值；配置统一保存在根目录 城市风格配置.json 中。");
+        root.remove("城市");
+        root.remove("建筑布局");
+        root.remove("建筑");
+        return root;
+    }
+
     private static Map<String, Object> parse(JsonObject root, Map<String, Object> defaults, List<String> w) {
         Map<String, Object> out = new LinkedHashMap<>();
         for (Entry e : ENTRIES) {
@@ -230,6 +249,9 @@ public final class CityGenConfig {
         for (Map.Entry<String, JsonElement> sec : root.entrySet()) {
             if (sec.getKey().startsWith("_")) {
                 continue;
+            }
+            if (sec.getKey().equals("城市") || sec.getKey().equals("建筑布局") || sec.getKey().equals("建筑")) {
+                continue; // Parsed by StageLayoutConfig; these are stage-specific layout rules.
             }
             if (!sec.getValue().isJsonObject()) {
                 unknown.add(sec.getKey());
@@ -371,6 +393,29 @@ public final class CityGenConfig {
         for (Map.Entry<String, JsonObject> e : sections.entrySet()) {
             root.add(e.getKey(), e.getValue());
         }
+        root.add("城市", layoutCityTemplate());
+        root.add("建筑布局", layoutBuildingTemplate());
+        root.add("建筑", new JsonObject());
         return root;
+    }
+
+    private static JsonObject layoutCityTemplate() {
+        JsonObject city = new JsonObject();
+        city.addProperty("_说明", "阶段城市布局。半径单位为区块；间隔的 null 表示不限制。");
+        JsonArray radius = new JsonArray(); radius.add(50); radius.add(50); city.add("城市半径", radius);
+        city.addProperty("城心生成概率", 1.0);
+        JsonObject spacing = new JsonObject(); spacing.add("最小", JsonNull.INSTANCE); spacing.add("最大", JsonNull.INSTANCE);
+        city.add("城心间隔", spacing);
+        return city;
+    }
+
+    private static JsonObject layoutBuildingTemplate() {
+        JsonObject layout = new JsonObject();
+        JsonObject spacing = new JsonObject(); spacing.addProperty("最小", 1); spacing.addProperty("最大", 1);
+        layout.add("建筑间隔", spacing);
+        layout.addProperty("连续生成最大宽度", 2);
+        layout.addProperty("连续生成最大长度", 6);
+        layout.addProperty("相同建筑间隔", 10);
+        return layout;
     }
 }

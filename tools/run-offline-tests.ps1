@@ -97,14 +97,18 @@ if ($neoJars.Count -gt 0) {
 }
 if (-not $cpReal) { Write-Host "build\real-cp.txt not found - group B tests will be skipped" -ForegroundColor Yellow }
 
-# Locate the Lost Cities jar in the instance (read-only).
-$instance = Split-Path $local['deploy_mods'] -Parent
-$lcJar = $null
-if (Test-Path -LiteralPath (Join-Path $instance 'mods')) {
-    $lcJar = (Get-ChildItem -LiteralPath (Join-Path $instance 'mods') -Filter '*lostcities*.jar' -File -ErrorAction SilentlyContinue |
-              Select-Object -First 1).FullName
+# Locate the Lost Cities jar without requiring a machine-specific deployment path.
+# New checkouts set lostcities_jar directly; deploy_mods remains a compatibility fallback.
+$lcJar = $local['lostcities_jar']
+if (-not $lcJar -and $local['deploy_mods']) {
+    $instance = Split-Path $local['deploy_mods'] -Parent
+    if (Test-Path -LiteralPath (Join-Path $instance 'mods')) {
+        $lcJar = (Get-ChildItem -LiteralPath (Join-Path $instance 'mods') -Filter '*lostcities*.jar' -File -ErrorAction SilentlyContinue |
+                  Select-Object -First 1).FullName
+    }
 }
-if (-not $lcJar) { Write-Host "Lost Cities jar not found under $instance\mods" -ForegroundColor Red; exit 1 }
+if (-not $lcJar) { Write-Host "Lost Cities jar path is not configured (set lostcities_jar in local.properties)" -ForegroundColor Red; exit 1 }
+if (-not (Test-Path -LiteralPath $lcJar)) { Write-Host "Lost Cities jar not found: $lcJar" -ForegroundColor Red; exit 1 }
 
 # UTF-8 java output so Chinese paths are readable.
 $env:JAVA_TOOL_OPTIONS = '-Duser.language=en -Duser.country=US -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8'
@@ -140,7 +144,7 @@ $srcAll = @(Get-ChildItem -LiteralPath (Join-Path $root 'src\main\java') -Recurs
 $src = @($srcAll | Where-Object { -not $_.StartsWith("$mixinDir\") -and -not $_.StartsWith("$implDir\") })
 $srcMixin = @($srcAll | Where-Object { $_.StartsWith("$mixinDir\") -or $_.StartsWith("$implDir\") })
 $testsA = @()
-foreach ($n in @('ConverterSmokeTest', 'DataJarSmokeTest', 'InjectSmokeTest', 'StartupSmokeTest', 'ModsTomlSmokeTest', 'ZoningSmokeTest', 'ZoneWeightSmokeTest', 'LootSmokeTest', 'RoadPaletteSmokeTest', 'CountLimitSplitSmokeTest', 'GapRuleSmokeTest', 'ScatteredMarginSmokeTest', 'ForceFlattenSmokeTest', 'ZoneNormalizeSmokeTest', 'CitySizeConfigSmokeTest', 'PackSwapSmokeTest', 'BuildingStatsSmokeTest', 'HighwayStyleSmokeTest', 'SpawnCitySmokeTest', 'BuildingScanDepthSmokeTest', 'CityCommandSmokeTest', 'FillPlotsSmokeTest')) {
+foreach ($n in @('ConverterSmokeTest', 'DataJarSmokeTest', 'InjectSmokeTest', 'StartupSmokeTest', 'ModsTomlSmokeTest', 'ZoningSmokeTest', 'ZoneWeightSmokeTest', 'LootSmokeTest', 'RoadPaletteSmokeTest', 'CountLimitSplitSmokeTest', 'GapRuleSmokeTest', 'ScatteredMarginSmokeTest', 'ForceFlattenSmokeTest', 'ZoneNormalizeSmokeTest', 'CitySizeConfigSmokeTest', 'CityStageConfigSmokeTest', 'PackSwapSmokeTest', 'BuildingStatsSmokeTest', 'HighwayStyleSmokeTest', 'SpawnCitySmokeTest', 'BuildingScanDepthSmokeTest', 'CityCommandSmokeTest', 'FillPlotsSmokeTest')) {
     $p = Join-Path $root "tools\smoke\$n.java"
     if (Test-Path -LiteralPath $p) { $testsA += $p }
 }

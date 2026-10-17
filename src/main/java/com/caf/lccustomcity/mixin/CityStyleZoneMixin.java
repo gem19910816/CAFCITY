@@ -88,48 +88,13 @@ public abstract class CityStyleZoneMixin {
         // 顺手把世界上下文转交给"建筑数量上下限" Mixin(getRandomBuilding 的签名里拿不到 provider)。
         // 失落城市选建筑前一定先算城市风格, 所以这里记录后 BuildingCountMixin 必定能读到。
         MixinWorldAccess.record(provider);
-        if (com.caf.lccustomcity.impl.CityLayout.enabled(provider, profile)) {
+        if (com.caf.lccustomcity.impl.CityLayout.enabledFor(coord, provider, profile)) {
             var district = com.caf.lccustomcity.impl.CityLayout.district(coord, provider, profile);
             if (district != null) cir.setReturnValue(AssetRegistries.CITYSTYLES.getOrThrow(provider.getWorld(), district.style()));
             return;
         }
-        CityStyle original = cir.getReturnValue();
-        if (original == null) {
-            return;
-        }
-        WorldGenLevel world = provider.getWorld();
-        if (world == null) {
-            return;   // GUI 预览等没有世界的场合, 不动
-        }
-
-        // 外城(factor < 阈值 → CITY_STYLE_ALTERNATIVE)直接放行, 不参与内城再分区。
-        String outerStyle = profile.CITY_STYLE_ALTERNATIVE;
-        if (outerStyle != null && !outerStyle.isEmpty() && outerStyle.equals(original.getName())) {
-            return;
-        }
-
-        // 枚举数据包里所有子分区城市风格(名字带我们的前缀)。没有 ⇒ 玩家没用子分区文件夹,
-        // 一切照旧(等价于本 Mixin 不存在)。
-        List<String> zoneStyles = caf$findZoneStyles(world);
-        if (zoneStyles.isEmpty()) {
-            return;
-        }
-        // 原返回值如果已经是某个子分区风格(理论上不会发生), 也别再套一层。
-        if (original.getName() != null && original.getName().startsWith(ZONE_PREFIX)) {
-            return;
-        }
-
-        int idx = caf$pickZoneIndex(provider.getSeed(), coord.chunkX(), coord.chunkZ(), zoneStyles);
-        CityStyle zoned = AssetRegistries.CITYSTYLES.get(world, zoneStyles.get(idx));
-        if (zoned == null) {
-            return;   // 注册表里没看到(理论上不该发生), 保守起见不动
-        }
-        if (!caf$loggedOnce) {
-            caf$loggedOnce = true;
-            CAF_LOGGER.info("[CAF-LC] 连续城区分区已启用: 内城按噪声图分成 {} 片 ({})",
-                    zoneStyles.size(), String.join(", ", zoneStyles));
-        }
-        cir.setReturnValue(zoned);
+        // 新分区系统未接管的区块直接保留失落城市原始风格。
+        // 旧的内城/外城阈值和连续噪声分区不再参与选择。
     }
 
     /** 从失落城市的 citystyles 注册表里找出所有子分区风格名(排序, 保证下标稳定)。 */

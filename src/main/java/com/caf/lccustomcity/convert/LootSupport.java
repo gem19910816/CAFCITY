@@ -1,6 +1,6 @@
 package com.caf.lccustomcity.convert;
 
-import com.caf.lccustomcity.config.ZoneConfig;
+import com.caf.lccustomcity.config.LootPoolConfig;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -71,13 +71,13 @@ public final class LootSupport {
      * 登记一套战利品池, 生成对应的<b>条件</b>和<b>战利品表</b>两份资产, 返回条件名
      * (用于写进调色板条目的 loot 字段, 形如 {@code caf_lc_customcity:pool_a1b2c3d4})。
      *
-     * <p>内容完全相同的池只生成一份资产(按 {@link ZoneConfig.LootPool#signature()} 去重),
+     * <p>内容完全相同的池只生成一份资产(按 {@link LootPoolConfig.LootPool#signature()} 去重),
      * 所以多个分区共用同一套物品时不会重复出文件。
      *
      * @param seen 池签名 -> 条件名 的去重表(由调用方持有, 一次转换内共享)
      */
     public static String register(LcAssetGenerator.Output out, Map<String, String> seen,
-                                  ZoneConfig.LootPool pool) {
+                                  LootPoolConfig.LootPool pool) {
         String sig = pool.signature();
         String existing = seen.get(sig);
         if (existing != null) {
@@ -108,9 +108,9 @@ public final class LootSupport {
     }
 
     /** 标准 MC 战利品表: rolls 1~3, 每件物品带 set_count。 */
-    private static JsonObject tableJson(ZoneConfig.LootPool pool) {
+    private static JsonObject tableJson(LootPoolConfig.LootPool pool) {
         JsonArray entries = new JsonArray();
-        for (ZoneConfig.LootItem item : pool.items()) {
+        for (LootPoolConfig.LootItem item : pool.items()) {
             JsonObject e = new JsonObject();
             e.addProperty("type", "minecraft:item");
             e.addProperty("name", item.id());

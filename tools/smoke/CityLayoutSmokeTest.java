@@ -42,7 +42,7 @@ public final class CityLayoutSmokeTest {
     public static void main(String[] args) throws Exception {
         net.minecraft.SharedConstants.tryDetectVersion();net.minecraft.server.Bootstrap.bootStrap();
         output=Path.of(args[0]);Files.createDirectories(output);pack=Path.of(args[2]);
-        repeatSpacing();outerGroups();sectors();inventory(Path.of(args[1]));industrialSizing();packing();hooks();runtime();reportedCities();currentWorld();maps();counts();surface();
+        repeatSpacing();outerGroups();partitionLayoutRules();sectors();inventory(Path.of(args[1]));industrialSizing();packing();hooks();runtime();reportedCities();currentWorld();maps();counts();surface();
         System.out.println("City layout: PASS");
     }
     static void sectors(){
@@ -514,6 +514,27 @@ public final class CityLayoutSmokeTest {
             (x,z)->true,(b,x,z)->b.width()==(b.id().equals("wide")?4:2)&&z==1&&x==(b.id().equals("wide")?1:5));
         check(audit(cells).size()==2,"mixed footprint homes should touch without being cut");
         System.out.println("outer groups: 1x2/2x2/2x3 and rotated, 3x3 blocked, whole unequal footprints");
+    }
+    static void partitionLayoutRules() {
+        var building = new LayoutCatalog.Building("rural_house", "rural", "乡村", false, 1, 1);
+        var catalog = new LayoutCatalog.Snapshot(List.of(building), Map.of("rural", 1.0), 0, 1);
+        var layout = new StageLayoutConfig.Rules(8, 8, null,
+                new StageLayoutConfig.Range(null, null), new StageLayoutConfig.Range(0, 0),
+                2, 6, 0, Map.of());
+        var district = new CityLayout.District(new CityLayout.Center(0, 0, 128), "rural", false);
+        var partition = new StagePartitionConfig.Partition("乡村", true, "圆形", "固定", 0,
+                0, 0, 0, 8, 8, 8, 0, 360,
+                new StagePartitionConfig.Range(0, 0), 1, 5, false, false);
+        var sparse = CityPlotPlan.create(8, 8, 12, catalog, (x, z) -> district,
+                (x, z) -> true, (b, x, z) -> true, layout, Map.of("乡村", partition));
+        check(audit(sparse).size() == 1, "disabled empty-plot fill keeps only required occurrence");
+        var filledPartition = new StagePartitionConfig.Partition("乡村", true, "圆形", "固定", 0,
+                0, 0, 0, 8, 8, 8, 0, 360,
+                new StagePartitionConfig.Range(0, 0), 1, 5, true, false);
+        var filled = CityPlotPlan.create(8, 8, 12, catalog, (x, z) -> district,
+                (x, z) -> true, (b, x, z) -> true, layout, Map.of("乡村", filledPartition));
+        check(audit(filled).size() > audit(sparse).size(), "enabled empty-plot fill uses optional buildings");
+        System.out.println("partition layout: empty-plot fill controls optional repeats; configured partition run bounds apply");
     }
     static void repeatSpacing() {
         // Exact boundary on both axes, all quadrants and negative-world origins.
