@@ -59,7 +59,7 @@ public final class StageLayoutConfig {
             candidateGridSize = Math.max(256, Math.min(8192, candidateGridSize));
             terrainCheckRadiusBlocks = Math.max(0, Math.min(256, terrainCheckRadiusBlocks));
             maxContinuousWidth = Math.max(1, maxContinuousWidth);
-            maxContinuousLength = Math.max(1, maxContinuousLength);
+            maxContinuousLength = Math.max(maxContinuousWidth, maxContinuousLength);
             sameBuildingSpacing = Math.max(0, sameBuildingSpacing);
             buildings = buildings == null ? Map.of() : Map.copyOf(buildings);
         }
@@ -113,6 +113,8 @@ public final class StageLayoutConfig {
     private static Rules parse(JsonObject root, List<String> warnings, Rules defaults) {
         try {
             JsonObject city = object(root, "城市");
+            int radiusMin = defaults.radiusMinBlocks();
+            int radiusMax = defaults.radiusMaxBlocks();
             Double centerChance = null;
             int candidateCount = defaults.candidateCenterCount();
             int candidateGridSize = defaults.candidateGridSize();
@@ -120,6 +122,8 @@ public final class StageLayoutConfig {
             int terrainCheckRadius = defaults.terrainCheckRadiusBlocks();
             Range centerSpacing = defaults.centerSpacing();
             if (city != null) {
+                radiusMin = integer(city, "最小半径", radiusMin);
+                radiusMax = integer(city, "最大半径", radiusMax);
                 centerChance = decimal(city.get("城心生成概率"));
                 candidateCount = integer(city, "候选城心数量", candidateCount);
                 candidateGridSize = integer(city, "候选网格大小", candidateGridSize);
@@ -140,7 +144,7 @@ public final class StageLayoutConfig {
                 sameSpacing = Math.max(0, integer(layout, "相同建筑间隔", sameSpacing));
             }
             Map<String, BuildingRule> buildings = parseBuildings(object(root, "建筑"), warnings);
-            return new Rules(defaults.radiusMinBlocks(), defaults.radiusMaxBlocks(), centerChance,
+            return new Rules(radiusMin, radiusMax, centerChance,
                     candidateCount, candidateGridSize, terrainCheckEnabled, terrainCheckRadius,
                     centerSpacing, buildingSpacing,
                     maxWidth, maxLength, sameSpacing, buildings);
@@ -239,6 +243,8 @@ public final class StageLayoutConfig {
     private static JsonObject cityTemplate() {
         JsonObject o = new JsonObject();
         o.addProperty("_说明", "城市半径单位是方块；城心间隔单位是方块，填 null 表示不限制。");
+        o.addProperty("最小半径", 800);
+        o.addProperty("最大半径", 800);
         o.addProperty("城心生成概率", 1.0);
         o.addProperty("候选城心数量", 10);
         o.addProperty("候选网格大小", 1024);
@@ -250,10 +256,22 @@ public final class StageLayoutConfig {
     private static boolean ensureCityFields(JsonObject city) {
         if (city == null) return false;
         boolean changed = false;
+        if (!city.has("最小半径")) { city.addProperty("最小半径", 800); changed = true; }
+        if (!city.has("最大半径")) { city.addProperty("最大半径", 800); changed = true; }
         if (!city.has("候选城心数量")) { city.addProperty("候选城心数量", 10); changed = true; }
         if (!city.has("候选网格大小")) { city.addProperty("候选网格大小", 1024); changed = true; }
         if (!city.has("城心附近地形检查")) { city.addProperty("城心附近地形检查", true); changed = true; }
         if (!city.has("城心附近地形检查半径")) { city.addProperty("城心附近地形检查半径", 50); changed = true; }
+        return changed;
+    }
+    public static boolean ensureStageFields(JsonObject rules) {
+        if (rules == null) return false;
+        boolean changed = false;
+        JsonObject city = object(rules, "城市");
+        if (city == null) { city = cityTemplate(); rules.add("城市", city); changed = true; }
+        else changed |= ensureCityFields(city);
+        if (!rules.has("建筑布局")) { rules.add("建筑布局", layoutTemplate()); changed = true; }
+        if (!rules.has("建筑")) { rules.add("建筑", new JsonObject()); changed = true; }
         return changed;
     }
     private static JsonObject layoutTemplate() {

@@ -244,9 +244,9 @@ public final class CityStageConfig {
 
     private static JsonObject template() {
         JsonObject root = new JsonObject();
-        root.addProperty("_说明", "新城市阶段配置。填写后重启游戏生效；本模板默认全部停用，不会改变旧版城市生成。"
+        root.addProperty("_说明", "城市阶段配置。填写后重启游戏生效。"
                 + "可用城市风格文件夹填写 CAF失落城市配置 下的风格目录名。分区建筑必须放在 风格/阶段/分区/建筑文件/ 下。"
-                + "配置统一写在本文件的附属功能设置、城市生成配置及各阶段项中；分区目录下放建筑文件、道路文件和战利品文件。"
+                + "全局选项在附属功能设置和城市生成配置中；阶段专属规则、道路和分区设置在各阶段中。"
                 + "每个分区的战利品配置直接放在该分区的战利品文件目录中，分区通用文件建议命名为 分区通用.json；"
                 + "战利品优先级为单建筑、分区通用。"
                 + "距离单位为方块，最大距离填 -1 表示没有上限，生成概率填 0 到 1。"
@@ -310,7 +310,7 @@ public final class CityStageConfig {
     private static JsonObject partitionTemplate(String shape, String placement, int priority,
                                                 int angleStart, int angleRange) {
         JsonObject value = new JsonObject();
-        value.addProperty("_说明", "分区文件夹为 风格/阶段/本分区名/，其中建筑文件、战利品文件和道路文件分别存放对应资源。道路文件下按直道、弯道、尽头、三岔路口、十字路口分类，每个 .nbt 都是包含路面和街景装饰的完整道路场景。"
+        value.addProperty("_说明", "分区文件夹为 风格/阶段/本分区名/，其中放建筑文件和战利品文件。道路文件位于 风格/阶段/道路文件/，按直道、弯道、尽头、三岔路口、十字路口分类，每个 .nbt 都是包含路面和街景装饰的完整道路场景。"
                 + "随机分区会稳定地优先寻找固定分区覆盖较少的位置；空缺按相邻分区优先级归属。"
                 + "大小和建筑布局均按区块计算；角度0度朝南，90度朝东，180度朝北，270度朝西。优先级数字越大越优先。");
         value.addProperty("启用", true);
@@ -634,6 +634,10 @@ public final class CityStageConfig {
         JsonObject addon = root.has(RootCityOptions.SECTION) && root.get(RootCityOptions.SECTION).isJsonObject()
                 ? root.getAsJsonObject(RootCityOptions.SECTION) : new JsonObject();
         if (!root.has(RootCityOptions.SECTION) || !root.get(RootCityOptions.SECTION).isJsonObject()) changed = true;
+        changed |= addon.remove("使用ChaosZ路面预设") != null;
+        changed |= addon.remove("_说明_使用ChaosZ路面预设") != null;
+        changed |= addon.remove("生成街景设施") != null;
+        changed |= addon.remove("_说明_生成街景设施") != null;
         if (!root.has(RootCityOptions.SECTION) || !root.get(RootCityOptions.SECTION).isJsonObject()) {
             root.add(RootCityOptions.SECTION, addon);
         }
@@ -643,8 +647,11 @@ public final class CityStageConfig {
             for (Map.Entry<String, JsonElement> entry : stages.entrySet()) {
                 if (!entry.getValue().isJsonObject()) continue;
                 JsonObject stage = entry.getValue().getAsJsonObject();
+                changed |= normalizeStageConfig(stage);
                 changed |= addDefaultObject(stage, "道路", RoadConfig.template());
                 changed |= addDefaultObject(stage, "生成规则", StageLayoutConfig.template());
+                if (stage.get("生成规则").isJsonObject())
+                    changed |= StageLayoutConfig.ensureStageFields(stage.getAsJsonObject("生成规则"));
             }
         }
         if (changed) {
@@ -661,6 +668,25 @@ public final class CityStageConfig {
         if (object.has(key) && object.get(key).isJsonObject()) return false;
         object.add(key, value);
         return true;
+    }
+
+    private static boolean normalizeStageConfig(JsonObject stage) {
+        boolean changed = stage.remove("城区配置") != null;
+        JsonElement rulesElement = stage.get("生成规则");
+        if (rulesElement != null && rulesElement.isJsonObject()) {
+            JsonObject rules = rulesElement.getAsJsonObject();
+            changed |= rules.remove("城区配置") != null;
+            changed |= rules.remove("城区") != null;
+        }
+        JsonElement optionsElement = stage.get(RootCityOptions.SECTION);
+        if (optionsElement != null && optionsElement.isJsonObject()) {
+            JsonObject options = optionsElement.getAsJsonObject();
+            changed |= options.remove("使用ChaosZ路面预设") != null;
+            changed |= options.remove("_说明_使用ChaosZ路面预设") != null;
+            changed |= options.remove("生成街景设施") != null;
+            changed |= options.remove("_说明_生成街景设施") != null;
+        }
+        return changed;
     }
 
     private static void ensureRoadWeightTemplates(Path configDir, JsonObject root, List<String> styles,
@@ -683,6 +709,12 @@ public final class CityStageConfig {
                     existing.put(entry.getKey(), entry.getValue().getAsDouble());
                 }
             }
+            // The first generated template used 1.0 for every variant. Treat that
+            // untouched template as the default and prefer authored variant 1
+            // (8) over variants 2/3 (1). Once a user changes any weight, preserve
+            // the complete map on subsequent directory scans.
+            boolean untouchedDefault = !existing.isEmpty()
+                    && existing.values().stream().allMatch(value -> Math.abs(value - 1.0) < 1.0e-9);
             JsonObject weights = new JsonObject();
             for (String style : styles) {
                 Path dir = configDir.resolve(style).resolve(stageName).resolve("道路文件");
@@ -697,7 +729,7 @@ public final class CityStageConfig {
                                     // otherwise preserve the user's current weight, defaulting to 1.
                                     Double value = existing.get(key);
                                     if (value == null) value = existing.get(stageName + "/" + key);
-                                    if (value == null) value = 1.0;
+                                    if (value == null || untouchedDefault) value = defaultRoadVariantWeight(file.getFileName().toString());
                                     weights.addProperty(key, value);
                                 }
                             }
@@ -719,6 +751,14 @@ public final class CityStageConfig {
                 warnings.add(FILE_NAME + " 道路权重模板补全失败: " + e.getMessage());
             }
         }
+    }
+
+    private static double defaultRoadVariantWeight(String fileName) {
+        String stem = fileName.toLowerCase(java.util.Locale.ROOT);
+        int dot = stem.lastIndexOf('.');
+        if (dot >= 0) stem = stem.substring(0, dot);
+        if (stem.endsWith("1")) return 8.0;
+        return 1.0;
     }
 
     private static boolean hasStageBuildings(Path configDir, String style, String stage) {

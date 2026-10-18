@@ -79,6 +79,11 @@ public final class CityTerrainSmokeTest {
         check(driver.getBlock(2,65,2).is(Blocks.DIAMOND_ORE),"ore must survive");
         check(driver.getBlock(3,55,3).is(Blocks.STONE),"underwater vegetation must be filled");
         check(driver.getBlock(4,69,4).is(Blocks.DIRT),"upper foundation material");
+        CityFoundation.clearAbove(driver,GROUND);
+        check(driver.getBlock(0,71,0).isAir(),"natural surface at city plane cleared before authored surface placement");
+        check(driver.getBlock(0,72,0).isAir(),"natural terrain above city plane cleared");
+        driver.setBlockRange(0,GROUND,0,GROUND+1,Blocks.COBBLED_DEEPSLATE.defaultBlockState());
+        check(driver.getBlock(0,GROUND,0).is(Blocks.COBBLED_DEEPSLATE),"authored road can replace cleared city plane");
         // Basements and transit carve in the same generation buffer after the foundation.
         driver.setBlockRangeToAir(5,50,5,60);
         driver.actuallyGenerate(c);

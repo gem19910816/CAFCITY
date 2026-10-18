@@ -147,7 +147,7 @@ public final class LcAssetGenerator {
                 this.style = style;
             }
 
-            public String key() { return stage + "\\u0000" + style; }
+            public String key() { return stage + "\u0000" + style; }
             public List<String> innerSubZoneNames() {
                 java.util.SortedSet<String> all = new java.util.TreeSet<>(innerSubBuildingIds.keySet());
                 all.addAll(innerSubMultiIds.keySet());

@@ -63,28 +63,7 @@ public final class CityLayout {
     public static Center center(ChunkCoord coord, IDimensionInfo p, LostCityProfile profile) {
         if (!enabled(p,profile)) return null;
         Tile key = new Tile(context(p,profile),Math.floorDiv(coord.chunkX(),64),Math.floorDiv(coord.chunkZ(),64));
-        List<Center> candidates;
-        synchronized (CityLayout.class) { candidates=CENTERS.get(key); }
-        if(candidates==null){
-            CompletableFuture<List<Center>> mine = new CompletableFuture<>();
-            CompletableFuture<List<Center>> active = CENTER_BUILDS.putIfAbsent(key, mine);
-            if (active == null) {
-                try {
-                    candidates = scanCenters(coord, p, profile, key);
-                    synchronized (CityLayout.class) { CENTERS.put(key, candidates); }
-                    mine.complete(candidates);
-                } catch (Throwable error) {
-                    mine.completeExceptionally(error);
-                    if (error instanceof RuntimeException runtime) throw runtime;
-                    if (error instanceof Error fatal) throw fatal;
-                    throw new CompletionException(error);
-                } finally {
-                    CENTER_BUILDS.remove(key, mine);
-                }
-            } else {
-                candidates = await(active);
-            }
-        }
+        List<Center> candidates = centersForTile(coord, p, profile, key.x(), key.z());
         Center best=null; double bestDistance=1;
         int[] synthetic=SpawnCityRule.centerFor(p,profile);
         if(synthetic!=null && (!CityStageConfig.current().enabled()
@@ -106,6 +85,36 @@ public final class CityLayout {
         return best;
     }
 
+    /** Centers retained by the same per-tile quota and spacing rules used for city layout. */
+    public static List<Center> centersForTile(ChunkCoord coord, IDimensionInfo provider,
+                                              LostCityProfile profile, int tileX, int tileZ) {
+        if (!enabled(provider, profile) || coord == null) return List.of();
+        Tile key = new Tile(context(provider, profile), tileX, tileZ);
+        List<Center> candidates;
+        synchronized (CityLayout.class) { candidates=CENTERS.get(key); }
+        if(candidates==null){
+            CompletableFuture<List<Center>> mine = new CompletableFuture<>();
+            CompletableFuture<List<Center>> active = CENTER_BUILDS.putIfAbsent(key, mine);
+            if (active == null) {
+                try {
+                    candidates = scanCenters(coord, provider, profile, key);
+                    synchronized (CityLayout.class) { CENTERS.put(key, candidates); }
+                    mine.complete(candidates);
+                } catch (Throwable error) {
+                    mine.completeExceptionally(error);
+                    if (error instanceof RuntimeException runtime) throw runtime;
+                    if (error instanceof Error fatal) throw fatal;
+                    throw new CompletionException(error);
+                } finally {
+                    CENTER_BUILDS.remove(key, mine);
+                }
+            } else {
+                candidates = await(active);
+            }
+        }
+        return candidates;
+    }
+
     private static List<Center> scanCenters(ChunkCoord coord, IDimensionInfo provider,
                                             LostCityProfile profile, Tile tile) {
         List<Center> candidates = new ArrayList<>();
@@ -116,7 +125,8 @@ public final class CityLayout {
         for (Center candidate : candidates) {
             knownCenters.add((((long) candidate.x()) << 32) ^ (candidate.z() & 0xffffffffL));
         }
-        int scanRadius = CityStageRuntime.maxRadiusBlocks(profile.CITY_MAXRADIUS);
+        int scanRadius = Math.max(CityStageRuntime.maxRadiusBlocks(profile.CITY_MAXRADIUS),
+                CityStageRuntime.maxMinimumCenterSpacingBlocks());
         int range = (int) Math.ceil(scanRadius / 16.0) + 1;
         for (int x = tile.x() * 64 - range; x < tile.x() * 64 + 64 + range; x++) {
             for (int z = tile.z() * 64 - range; z < tile.z() * 64 + 64 + range; z++) {
@@ -390,7 +400,7 @@ public final class CityLayout {
         var missing=catalog.buildings().stream().filter(b->{
             var limit=(b.multi()?com.caf.lccustomcity.config.BuildingCountLimits.forStyleMulti(b.style()):
                     com.caf.lccustomcity.config.BuildingCountLimits.forStyleSingle(b.style())).get(b.id());
-            int minimum=limit==null?1:Math.min(limit.max(),Math.max(1,limit.min()));
+            int minimum=limit==null?0:Math.min(limit.max(),Math.max(0,limit.min()));
             return counts.getOrDefault(b.id(),0)<minimum;
         }).map(LayoutCatalog.Building::id).toList();
         if(!missing.isEmpty())org.slf4j.LoggerFactory.getLogger("CAF-LC-Layout").warn(

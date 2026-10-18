@@ -24,6 +24,10 @@ import java.io.Writer;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -854,6 +858,9 @@ public class LcCustomCityMod {
                 && ignore.contains(world.getFileName().toString().toLowerCase(Locale.ROOT))) {
             return false;
         }
+        if (isWorldSessionOpen(world)) {
+            return false;
+        }
         Path packDir = world.resolve("datapacks").resolve(PACK_DIR_NAME);
         Path marker = packDir.resolve(HASH_MARKER);
         Path dataDir = packDir.resolve("data");
@@ -907,6 +914,24 @@ public class LcCustomCityMod {
                 LOGGER.debug("[CAF-LC] 注入存档 {} 仍然失败(已警告过一次): {}", world.getFileName(), e.toString());
             }
             return false;
+        }
+    }
+
+    /** Never replace a save's datapack while Minecraft is loading or using that world. */
+    private static boolean isWorldSessionOpen(Path world) {
+        Path lockPath = world.resolve("session.lock");
+        if (!Files.isRegularFile(lockPath)) {
+            return false;
+        }
+        try (FileChannel channel = FileChannel.open(lockPath, StandardOpenOption.READ, StandardOpenOption.WRITE)) {
+            try (FileLock lock = channel.tryLock()) {
+                return lock == null;
+            }
+        } catch (OverlappingFileLockException e) {
+            return true;
+        } catch (IOException e) {
+            // If lock state cannot be determined, leave the save alone until the next poll.
+            return true;
         }
     }
 

@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 /**
  * 游戏内命令 {@code /cafcity [距离上限]} 接游戏的那一半(纯计算在同包的 {@link CityLocator},
@@ -84,6 +87,7 @@ public final class CityCommandService {
 
     /** 结论表上限: 一个格子一条, 玩家到处传送也不会涨到没边。 */
     private static final int MAX_ENTRIES = 256;
+    private static final AtomicBoolean SEARCH_RUNNING = new AtomicBoolean();
 
     /** 记忆化键: 结论只和这些输入有关(种子 + 维度 + 格子 + 上限 + 配置档身份)。 */
     private record Key(Object world, long seed, ResourceKey<Level> dim, int cellX, int cellZ, int limit,
@@ -107,48 +111,45 @@ public final class CityCommandService {
      * @param limitRaw 距离上限的原文(null = 玩家没填, 用默认值)
      */
     public static void report(CommandSourceStack source, String limitRaw) {
-        List<String> lines;
-        try {
-            Vec3 pos = source.getPosition();
-            lines = describe(source.getLevel(), pos.x, pos.z, limitRaw);
-        } catch (Throwable t) {
-            CAF_LOGGER.warn("[CAF-LC] 查询最近的城市失败(已忽略): {}", t.toString());
-            lines = List.of(CityLocator.PREFIX + "查询最近的城市失败(详见日志): " + t);
-        }
-        send(source, lines);
+        ServerLevel level = source.getLevel();
+        Vec3 pos = source.getPosition();
+        submit(source, () -> describe(level, pos.x, pos.z, limitRaw));
     }
 
     /** 查询当前位置的阶段、风格、分区和已规划建筑。 */
     public static void reportInspect(CommandSourceStack source) {
-        List<String> lines;
-        try {
-            ServerLevel level = source.getLevel();
-            IDimensionInfo provider = providerOf(level);
-            if (provider == null) {
-                lines = List.of(CityLocator.PREFIX + "这个维度没有失落城市生成器");
-            } else {
-                int x = (int) Math.floor(source.getPosition().x);
-                int z = (int) Math.floor(source.getPosition().z);
-                int[][] centers = centersFor(provider, provider.getProfile(), x, z, CityLocator.MAX_LIMIT);
-                int[] nearest = CityLocator.nearest(x, z, centers);
-                if (nearest == null) {
-                    lines = List.of(CityLocator.PREFIX + "20000格范围内没有找到城市");
+        ServerLevel level = source.getLevel();
+        Vec3 pos = source.getPosition();
+        submit(source, () -> {
+            List<String> lines;
+            try {
+                IDimensionInfo provider = providerOf(level);
+                if (provider == null) {
+                    lines = List.of(CityLocator.PREFIX + "这个维度没有失落城市生成器");
                 } else {
-                    int visible = SpawnCityPlan.visibleRadius(provider.getProfile().CITY_THRESHOLD, nearest[2]);
-                    int distance = CityLocator.distance(x, z, nearest[0], nearest[1]);
-                    if (distance > visible) {
-                        lines = List.of(CityLocator.PREFIX + "当前位置不在城市中；最近城心为 (" + nearest[0] + ", "
-                                + nearest[1] + ")，距离 " + distance + " 格");
+                    int x = (int) Math.floor(pos.x);
+                    int z = (int) Math.floor(pos.z);
+                    int[][] centers = centersFor(provider, provider.getProfile(), x, z, CityLocator.MAX_LIMIT);
+                    int[] nearest = CityLocator.nearest(x, z, centers);
+                    if (nearest == null) {
+                        lines = List.of(CityLocator.PREFIX + "20000格范围内没有找到城市");
                     } else {
-                        lines = inspectInside(provider, provider.getProfile(), x, z, nearest);
+                        int visible = SpawnCityPlan.visibleRadius(provider.getProfile().CITY_THRESHOLD, nearest[2]);
+                        int distance = CityLocator.distance(x, z, nearest[0], nearest[1]);
+                        if (distance > visible) {
+                            lines = List.of(CityLocator.PREFIX + "当前位置不在城市中；最近城心为 (" + nearest[0] + ", "
+                                    + nearest[1] + ")，距离 " + distance + " 格");
+                        } else {
+                            lines = inspectInside(provider, provider.getProfile(), x, z, nearest);
+                        }
                     }
                 }
+            } catch (Throwable t) {
+                CAF_LOGGER.warn("[CAF-LC] 查询当前位置失败(已忽略): {}", t.toString());
+                lines = List.of(CityLocator.PREFIX + "查询当前位置失败(详见日志)");
             }
-        } catch (Throwable t) {
-            CAF_LOGGER.warn("[CAF-LC] 查询当前位置失败(已忽略): {}", t.toString());
-            lines = List.of(CityLocator.PREFIX + "查询当前位置失败(详见日志)");
-        }
-        send(source, lines);
+            return lines;
+        });
     }
 
     private static List<String> inspectInside(IDimensionInfo provider, LostCityProfile profile,
@@ -196,9 +197,9 @@ public final class CityCommandService {
 
     /** 搜索指定阶段和风格的城市。 */
     public static void reportFind(CommandSourceStack source, String stageName, String styleName, int limit) {
-        List<String> lines = find(source.getLevel(), source.getPosition().x, source.getPosition().z,
-                stageName, styleName, limit);
-        send(source, lines);
+        ServerLevel level = source.getLevel();
+        Vec3 pos = source.getPosition();
+        submit(source, () -> find(level, pos.x, pos.z, stageName, styleName, limit));
     }
 
     private static List<String> find(ServerLevel level, double px, double pz,
@@ -229,31 +230,58 @@ public final class CityCommandService {
 
     /** 列出当前位置 20000 格内所有城市及其阶段、风格和城心。 */
     public static void reportAll(CommandSourceStack source) {
-        try {
-            IDimensionInfo provider = providerOf(source.getLevel());
-            if (provider == null) {
-                send(source, List.of(CityLocator.PREFIX + "这个维度没有失落城市生成器"));
-                return;
+        ServerLevel level = source.getLevel();
+        Vec3 pos = source.getPosition();
+        submit(source, () -> {
+            try {
+                IDimensionInfo provider = providerOf(level);
+                if (provider == null) {
+                    return List.of(CityLocator.PREFIX + "这个维度没有失落城市生成器");
+                }
+                int x = (int) Math.floor(pos.x), z = (int) Math.floor(pos.z);
+                List<String> lines = new ArrayList<>();
+                for (int[] center : centersFor(provider, provider.getProfile(), x, z, CityLocator.MAX_LIMIT)) {
+                    CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, provider.getProfile(), center[0], center[1]);
+                    String style = stage == null ? "旧版城市风格"
+                            : CityStageRuntime.selectedStyle(provider, stage, center[0], center[1]);
+                    lines.add(CityLocator.PREFIX + "阶段：" + (stage == null ? "旧版" : stage.name())
+                            + " | 风格：" + style + " | 城心：(" + center[0] + ", " + center[1] + ")");
+                }
+                if (lines.isEmpty()) lines.add(CityLocator.PREFIX + "20000格范围内没有找到城市");
+                else {
+                    int count = lines.size();
+                    lines.add(0, CityLocator.PREFIX + "20000格范围内共找到 " + count + " 座城市：");
+                }
+                return lines;
+            } catch (Throwable t) {
+                CAF_LOGGER.warn("[CAF-LC] 列出城市失败(已忽略): {}", t.toString());
+                return List.of(CityLocator.PREFIX + "列出城市失败(详见日志)");
             }
-            int x = (int) Math.floor(source.getPosition().x), z = (int) Math.floor(source.getPosition().z);
-            List<String> lines = new ArrayList<>();
-            for (int[] center : centersFor(provider, provider.getProfile(), x, z, CityLocator.MAX_LIMIT)) {
-                CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, provider.getProfile(), center[0], center[1]);
-                String style = stage == null ? "旧版城市风格"
-                        : CityStageRuntime.selectedStyle(provider, stage, center[0], center[1]);
-                lines.add(CityLocator.PREFIX + "阶段：" + (stage == null ? "旧版" : stage.name())
-                        + " | 风格：" + style + " | 城心：(" + center[0] + ", " + center[1] + ")");
-            }
-            if (lines.isEmpty()) lines.add(CityLocator.PREFIX + "20000格范围内没有找到城市");
-            else {
-                int count = lines.size();
-                lines.add(0, CityLocator.PREFIX + "20000格范围内共找到 " + count + " 座城市：");
-            }
-            send(source, lines);
-        } catch (Throwable t) {
-            CAF_LOGGER.warn("[CAF-LC] 列出城市失败(已忽略): {}", t.toString());
-            send(source, List.of(CityLocator.PREFIX + "列出城市失败(详见日志)"));
+        });
+    }
+
+    private static void submit(CommandSourceStack source, Supplier<List<String>> search) {
+        if (!SEARCH_RUNNING.compareAndSet(false, true)) {
+            source.sendSystemMessage(Component.literal(CityLocator.PREFIX + "已有城市搜索正在进行，请稍后再试"));
+            return;
         }
+        var server = source.getServer();
+        source.sendSystemMessage(Component.literal(CityLocator.PREFIX + "正在后台搜索城市，完成后会发送结果"));
+        CompletableFuture.supplyAsync(search)
+                .handle((lines, failure) -> {
+                    if (failure != null) {
+                        CAF_LOGGER.warn("[CAF-LC] 后台城市搜索失败(已忽略)", failure);
+                        return List.of(CityLocator.PREFIX + "城市搜索失败(详见日志)");
+                    }
+                    return lines;
+                })
+                .thenAccept(lines -> server.execute(() -> {
+                    try {
+                        send(source, lines);
+                    } finally {
+                        SEARCH_RUNNING.set(false);
+                    }
+                }));
     }
 
     private static void send(CommandSourceStack source, List<String> lines) {
@@ -406,9 +434,10 @@ public final class CityCommandService {
     /** Native and guaranteed spawn centers use the same coordinates as generation. */
     public static int[][] centersFor(IDimensionInfo provider, LostCityProfile profile,
                                      int playerX, int playerZ, int limit) {
-        int[][] nativeCenters=centersOfCell(provider,profile,playerX,playerZ,limit);
+        boolean staged = CityStageConfig.current().enabled();
+        int[][] nativeCenters=staged ? new int[0][] : centersOfCell(provider,profile,playerX,playerZ,limit);
         List<int[]> planned = new ArrayList<>();
-        if (CityStageConfig.current().enabled()) {
+        if (staged) {
             int tileRadius = Math.max(1, (limit + 1023) / 1024 + 1);
             int tileX = Math.floorDiv(playerX, 1024);
             int tileZ = Math.floorDiv(playerZ, 1024);
@@ -416,7 +445,11 @@ public final class CityCommandService {
             ChunkCoord origin = new ChunkCoord(provider.getType(), Math.floorDiv(playerX, 16), Math.floorDiv(playerZ, 16));
             for (int tx = tileX - tileRadius; tx <= tileX + tileRadius; tx++) {
                 for (int tz = tileZ - tileRadius; tz <= tileZ + tileRadius; tz++) {
-                    for (CityLayout.Center center : CustomCityCenterPlanner.scan(origin, provider, profile, tx, tz)) {
+                    if (!tileIntersectsRadius(tx, tz, playerX, playerZ, limitSquared)) continue;
+                    for (CityLayout.Center center : CityLayout.centersForTile(origin, provider, profile, tx, tz)) {
+                        int centerTileX = Math.floorDiv(Math.floorDiv(center.x(), 16), 64);
+                        int centerTileZ = Math.floorDiv(Math.floorDiv(center.z(), 16), 64);
+                        if (centerTileX != tx || centerTileZ != tz) continue;
                         long dx = (long) center.x() - playerX;
                         long dz = (long) center.z() - playerZ;
                         if (dx * dx + dz * dz <= limitSquared) {
@@ -456,6 +489,13 @@ public final class CityCommandService {
         }
         merged.sort(java.util.Comparator.<int[]>comparingInt(c->c[0]).thenComparingInt(c->c[1]));
         return merged.toArray(new int[0][]);
+    }
+
+    private static boolean tileIntersectsRadius(int tileX, int tileZ, int x, int z, long radiusSquared) {
+        long minX = (long) tileX * 1024, minZ = (long) tileZ * 1024;
+        long dx = x < minX ? minX - x : x > minX + 1023 ? x - (minX + 1023) : 0;
+        long dz = z < minZ ? minZ - z : z > minZ + 1023 ? z - (minZ + 1023) : 0;
+        return dx * dx + dz * dz <= radiusSquared;
     }
 
     private static void addCenterCandidate(List<int[]> centers, int[] candidate, int proximity) {

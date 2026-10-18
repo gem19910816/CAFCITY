@@ -513,7 +513,38 @@ public final class CityLayoutSmokeTest {
             (x,z)->new CityLayout.District(new CityLayout.Center(0,0,800),"homes",true),
             (x,z)->true,(b,x,z)->b.width()==(b.id().equals("wide")?4:2)&&z==1&&x==(b.id().equals("wide")?1:5));
         check(audit(cells).size()==2,"mixed footprint homes should touch without being cut");
-        System.out.println("outer groups: 1x2/2x2/2x3 and rotated, 3x3 blocked, whole unequal footprints");
+        for (int[] shape : new int[][]{{6, 2}, {2, 6}}) {
+            var rowHomes = new ArrayList<LayoutCatalog.Building>();
+            for (int i = 0; i < shape[0] * shape[1]; i++)
+                rowHomes.add(new LayoutCatalog.Building("row_home_" + shape[0] + "_" + i,
+                        "homes", null, true, 1, 1));
+            var rowCells = CityPlotPlan.create(shape[0], shape[1], 42,
+                    new LayoutCatalog.Snapshot(rowHomes, Map.of(), 1, 1),
+                    (x, z) -> new CityLayout.District(new CityLayout.Center(0, 0, 800), "homes", true),
+                    (x, z) -> true, (b, x, z) -> true);
+            var rowPlacements = audit(rowCells);
+            check(rowPlacements.size() == shape[0] * shape[1], "2-wide rows should fill both orientations");
+            boolean alongX = shape[0] >= shape[1];
+            for (int lane = 0; lane < (alongX ? shape[1] : shape[0]); lane++) {
+                int fixedLane = lane;
+                var turns = rowPlacements.stream().filter(p -> (alongX ? p.z() : p.x()) == fixedLane)
+                        .map(p -> p.building().turns()).distinct().toList();
+                check(turns.size() == 1, "each continuous row must face consistently");
+            }
+            int first = rowPlacements.getFirst().building().turns();
+            check(rowPlacements.stream().anyMatch(p -> Math.floorMod(p.building().turns() - first, 4) == 2),
+                    "two parallel rows must face opposite directions");
+        }
+        var normalizedLayout = new StageLayoutConfig.Rules(8, 8, null,
+                new StageLayoutConfig.Range(null, null), new StageLayoutConfig.Range(null, null),
+                5, 2, 0, Map.of());
+        check(normalizedLayout.maxContinuousLength() >= normalizedLayout.maxContinuousWidth(),
+                "configured continuous length cannot be less than width");
+        var normalizedPartition = new StagePartitionConfig.Partition("town", true, "圆形", "固定", 0,
+                0, 0, 0, 8, 8, 8, 0, 360, null, 5, 2, true, false);
+        check(normalizedPartition.maxParallelLength() >= normalizedPartition.maxParallelWidth(),
+                "partition row length cannot be less than width");
+        System.out.println("outer groups: 2xN/Nx2, consistent rows, opposite back-to-back lanes, valid width/length limits");
     }
     static void partitionLayoutRules() {
         var building = new LayoutCatalog.Building("rural_house", "rural", "乡村", false, 1, 1);
@@ -527,14 +558,40 @@ public final class CityLayoutSmokeTest {
                 new StagePartitionConfig.Range(0, 0), 1, 5, false, false);
         var sparse = CityPlotPlan.create(8, 8, 12, catalog, (x, z) -> district,
                 (x, z) -> true, (b, x, z) -> true, layout, Map.of("乡村", partition));
-        check(audit(sparse).size() == 1, "disabled empty-plot fill keeps only required occurrence");
+        check(audit(sparse).isEmpty(), "zero minimum and disabled empty-plot fill leave optional buildings absent");
         var filledPartition = new StagePartitionConfig.Partition("乡村", true, "圆形", "固定", 0,
                 0, 0, 0, 8, 8, 8, 0, 360,
                 new StagePartitionConfig.Range(0, 0), 1, 5, true, false);
         var filled = CityPlotPlan.create(8, 8, 12, catalog, (x, z) -> district,
                 (x, z) -> true, (b, x, z) -> true, layout, Map.of("乡村", filledPartition));
         check(audit(filled).size() > audit(sparse).size(), "enabled empty-plot fill uses optional buildings");
-        System.out.println("partition layout: empty-plot fill controls optional repeats; configured partition run bounds apply");
+        var villageMulti = new LayoutCatalog.Building("village_multi", "rural", "乡村", false, 2, 2);
+        var villageMultiCatalog = new LayoutCatalog.Snapshot(List.of(villageMulti), Map.of("rural", 1.0), 0, 1);
+        var villageMultiCells = CityPlotPlan.create(8, 8, 12, villageMultiCatalog, (x, z) -> district,
+                (x, z) -> true, (b, x, z) -> true, layout, Map.of("乡村", filledPartition));
+        check(!audit(villageMultiCells).isEmpty(),
+                "partition width counts buildings, not a multi-chunk building footprint");
+        var townHomes = new ArrayList<LayoutCatalog.Building>();
+        for (int i = 0; i < 12; i++)
+            townHomes.add(new LayoutCatalog.Building("town_home_" + i, "town", "小镇", false, 1, 1));
+        var townCatalog = new LayoutCatalog.Snapshot(townHomes, Map.of("town", 1.0), 0, 1);
+        var townRules = new StageLayoutConfig.Rules(8, 8, null,
+                new StageLayoutConfig.Range(null, null), new StageLayoutConfig.Range(0, 0), 2, 5, 0, Map.of());
+        var townPartition = new StagePartitionConfig.Partition("小镇", true, "圆形", "固定", 0,
+                0, 0, 0, 8, 8, 8, 0, 360, new StagePartitionConfig.Range(0, 0),
+                2, 5, true, false);
+        var townCells = CityPlotPlan.create(6, 2, 42, townCatalog,
+                (x, z) -> new CityLayout.District(new CityLayout.Center(0, 0, 128), "town", false),
+                (x, z) -> true, (b, x, z) -> true, townRules, Map.of("小镇", townPartition));
+        var townPlacements = audit(townCells);
+        check(townPlacements.size() == 12, "partition buildings participate in continuous row groups");
+        for (int z = 0; z < 2; z++) {
+            int lane = z;
+            check(townPlacements.stream().filter(p -> p.z() == lane)
+                    .map(p -> p.building().turns()).distinct().count() == 1,
+                    "town connected row must share one facade direction");
+        }
+        System.out.println("partition layout: zero minimum stays optional; empty-plot fill controls optional buildings");
     }
     static void repeatSpacing() {
         // Exact boundary on both axes, all quadrants and negative-world origins.

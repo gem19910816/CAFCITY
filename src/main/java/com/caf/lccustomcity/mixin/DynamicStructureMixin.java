@@ -7,6 +7,7 @@ import mcjty.lostcities.worldgen.lost.*;
 import mcjty.lostcities.worldgen.lost.cityassets.*;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.*;
@@ -17,9 +18,16 @@ public abstract class DynamicStructureMixin {
     @Shadow @Final public IDimensionInfo provider;
     @Shadow @Final public ChunkDriver driver;
     @Unique private final ImportedBlockEntities caf$pendingMachines=new ImportedBlockEntities();
+    @Unique private final java.util.List<caf$PendingUpper> caf$pendingUpper=new java.util.ArrayList<>();
+    @Unique private record caf$PendingUpper(int x,int y,int z,BlockState state) {}
     @Inject(method="generatePart(Lmcjty/lostcities/worldgen/lost/BuildingInfo;Lmcjty/lostcities/worldgen/lost/cityassets/IBuildingPart;Lmcjty/lostcities/worldgen/lost/Transform;IIILmcjty/lostcities/worldgen/LostCityTerrainFeature$HardAirSetting;)I",at=@At("RETURN"),require=0)
     private void caf$entities(BuildingInfo info,IBuildingPart part,Transform transform,int ox,int oy,int oz,
                               LostCityTerrainFeature.HardAirSetting air,CallbackInfoReturnable<Integer> cir) {
+        // Imported double-height plants/blocks are written after the complete
+        // floor.  Writing the upper half during the scan can trigger a shape
+        // update that removes the lower half, leaving the familiar half-grass
+        // holes in otherwise correct building plots.
+        caf$flushUpper();
         // Our imported floors are already rotated by BuildingRotationMixin, including metadata.
         if(transform!=Transform.ROTATE_NONE)return;
         DynamicStructurePlacer.place(provider.getWorld(),driver.getPrimer(),part,
@@ -33,8 +41,27 @@ public abstract class DynamicStructureMixin {
         // In 8.3.9 BOTH add() and block() call correct()/updateShape.
         // A one-cell range writes the buffer without touching incomplete neighbours.
         var pos=target.getCurrentCopy();
+        if (caf$isUpperHalf(state)) {
+            caf$pendingUpper.add(new caf$PendingUpper(pos.getX() & 15, pos.getY(), pos.getZ() & 15, state));
+            target.incY();
+            return target;
+        }
         target.setBlockRange(pos.getX()&15,pos.getY(),pos.getZ()&15,pos.getY()+1,state);
         target.incY();return target;
+    }
+
+    @Unique
+    private static boolean caf$isUpperHalf(BlockState state) {
+        Property<?> half = state.getBlock().getStateDefinition().getProperty("half");
+        return half != null && "upper".equals(String.valueOf(state.getValue(half)));
+    }
+
+    @Unique
+    private void caf$flushUpper() {
+        for (var pending : caf$pendingUpper) {
+            driver.setBlockRange(pending.x(), pending.y(), pending.z(), pending.y() + 1, pending.state());
+        }
+        caf$pendingUpper.clear();
     }
     @Inject(method="handleBlockEntity(Lmcjty/lostcities/worldgen/lost/BuildingInfo;ILnet/minecraft/world/level/WorldGenLevel;IIILnet/minecraft/world/level/block/state/BlockState;Lmcjty/lostcities/worldgen/lost/cityassets/Palette$Info;)Lnet/minecraft/world/level/block/state/BlockState;",at=@At("HEAD"),cancellable=true,require=0)
     private void caf$createData(BuildingInfo info,int oy,WorldGenLevel world,int x,int z,int sy,
@@ -46,7 +73,9 @@ public abstract class DynamicStructureMixin {
             "generateBuilding(Lmcjty/lostcities/worldgen/lost/BuildingInfo;Lmcjty/lostcities/worldgen/ChunkHeightmap;Lnet/minecraft/world/level/chunk/ChunkAccess;)V"},
             at=@At(value="INVOKE",target="Lmcjty/lostcities/worldgen/ChunkDriver;actuallyGenerate(Lnet/minecraft/world/level/chunk/ChunkAccess;)V"),require=2)
     private void caf$flushMachines(ChunkDriver target,ChunkAccess chunk) {
+        caf$flushUpper();
         target.actuallyGenerate(chunk);
         caf$pendingMachines.flush(chunk);
+        ImportedBlockEntities.ROAD.flush(chunk);
     }
 }

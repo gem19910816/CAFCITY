@@ -238,19 +238,10 @@ public final class SpawnCityRule {
             int stageRadius = CityStageRuntime.radiusBlocks(provider, stage, style, eligible[2], eligible[0], eligible[1]);
             return new Result(true, true, eligible[0], eligible[1], stageRadius);
         }
-        int[][] eligibleCities = eligibleNativeCities(provider, profile, cities);
-        if (SpawnCityPlan.satisfied(spawnX, spawnZ, centerDistance, eligibleCities)) {
+        if (SpawnCityPlan.satisfied(spawnX, spawnZ, centerDistance, cities)) {
             return new Result(false, true, 0, 0, radius);
         }
         int[] plan = SpawnCityPlan.planGeometry(provider.getSeed(), spawnX, spawnZ, radius, centerDistance);
-        if (CityStageConfig.current().enabled()) {
-            int[] eligible = findEligibleCenter(provider, profile, spawnX, spawnZ, centerDistance, plan);
-            if (eligible == null) return new Result(false, false, 0, 0, radius);
-            CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, profile, eligible[0], eligible[1]);
-            String style = CityStageRuntime.selectedStyle(provider, stage, eligible[0], eligible[1]);
-            int stageRadius = CityStageRuntime.radiusBlocks(provider, stage, style, plan[2], eligible[0], eligible[1]);
-            return new Result(true, true, eligible[0], eligible[1], stageRadius);
-        }
         return new Result(true, true, plan[0], plan[1], plan[2]);
     }
 
@@ -279,52 +270,6 @@ public final class SpawnCityRule {
             }
         }
         return eligible.toArray(new int[0][]);
-    }
-
-    /** Finds the nearest deterministic stage-eligible chunk to the planned forced center. */
-    private static int[] findEligibleCenter(IDimensionInfo provider, LostCityProfile profile,
-                                            int spawnX, int spawnZ, int maxDistance, int[] plan) {
-        int planChunkX = plan[0] >> 4;
-        int planChunkZ = plan[1] >> 4;
-        int maxRing = scanWindow(maxDistance) * 2 + 2;
-        long maxDistanceSquared = (long) maxDistance * maxDistance;
-        for (int ring = 0; ring <= maxRing; ring++) {
-            if (ring == 0) {
-                int[] candidate = eligibleCenterAt(provider, profile, spawnX, spawnZ,
-                        maxDistanceSquared, planChunkX, planChunkZ);
-                if (candidate != null) return candidate;
-                continue;
-            }
-            for (int dx = -ring; dx <= ring; dx++) {
-                int[] north = eligibleCenterAt(provider, profile, spawnX, spawnZ, maxDistanceSquared,
-                        planChunkX + dx, planChunkZ - ring);
-                if (north != null) return north;
-                int[] south = eligibleCenterAt(provider, profile, spawnX, spawnZ, maxDistanceSquared,
-                        planChunkX + dx, planChunkZ + ring);
-                if (south != null) return south;
-            }
-            for (int dz = -ring + 1; dz < ring; dz++) {
-                int[] west = eligibleCenterAt(provider, profile, spawnX, spawnZ, maxDistanceSquared,
-                        planChunkX - ring, planChunkZ + dz);
-                if (west != null) return west;
-                int[] east = eligibleCenterAt(provider, profile, spawnX, spawnZ, maxDistanceSquared,
-                        planChunkX + ring, planChunkZ + dz);
-                if (east != null) return east;
-            }
-        }
-        return null;
-    }
-
-    private static int[] eligibleCenterAt(IDimensionInfo provider, LostCityProfile profile,
-                                          int spawnX, int spawnZ, long maxDistanceSquared,
-                                          int chunkX, int chunkZ) {
-        int x = chunkX * SpawnCityPlan.CHUNK;
-        int z = chunkZ * SpawnCityPlan.CHUNK;
-        long dx = (long) x - spawnX;
-        long dz = (long) z - spawnZ;
-        if (dx * dx + dz * dz > maxDistanceSquared
-                || CityStageRuntime.acceptedStage(provider, profile, x, z) == null) return null;
-        return new int[]{x, z};
     }
 
     /**

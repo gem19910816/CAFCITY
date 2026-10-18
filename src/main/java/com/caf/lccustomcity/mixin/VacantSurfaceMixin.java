@@ -34,8 +34,8 @@ public abstract class VacantSurfaceMixin {
         boolean authoredRoad=com.caf.lccustomcity.impl.RoadNbtRuntime.place(driver,info.coord,provider,info.profile,
                     info.getCityGroundLevel());
         // A complete authored road owns the whole plot.  Do not lay the default mixed
-        // surface underneath it: schematic air is intentionally skipped by the NBT
-        // writer and would otherwise reveal the old surface through the preset.
+        // surface underneath it: explicit air in the preset clears natural blocks,
+        // while structure_void marks locations that must remain untouched.
         if(!authoredRoad) {
             var part=AssetRegistries.PARTS.getOrThrow(provider.getWorld(),"caf_lc_customcity:vacant_surface");
             generatePart(info,part,Transform.ROTATE_NONE,0,info.getCityGroundLevel(),0,

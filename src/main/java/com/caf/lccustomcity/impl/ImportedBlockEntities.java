@@ -11,6 +11,7 @@ import java.util.*;
 /** Per terrain-feature queue; never expose machine NBT against unflushed terrain. */
 public final class ImportedBlockEntities {
     private record Entry(BlockState state,CompoundTag tag) {}
+    public static final ImportedBlockEntities ROAD = new ImportedBlockEntities();
     private final Map<ChunkAccess,Map<BlockPos,Entry>> pending=new WeakHashMap<>();
     public boolean queue(ChunkAccess chunk,BlockPos pos,BlockState state,CompoundTag carrier) {
         if(carrier==null||!carrier.contains(DynamicNbt.BE_KEY))return false;
@@ -26,7 +27,14 @@ public final class ImportedBlockEntities {
             return true;
         }
     }
-    public void flush(ChunkAccess chunk) {
+    public synchronized void queueResolved(ChunkAccess chunk,BlockPos pos,BlockState state,CompoundTag tag) {
+        if(tag==null)return;
+        if(!chunk.getPos().equals(new net.minecraft.world.level.ChunkPos(pos)))
+            throw new IllegalArgumentException("block entity outside generating chunk: "+pos);
+        pending.computeIfAbsent(chunk,c->new LinkedHashMap<>()).put(pos.immutable(),
+                new Entry(state,tag.copy()));
+    }
+    public synchronized void flush(ChunkAccess chunk) {
         var entries=pending.remove(chunk);if(entries==null)return;
         for(var item:entries.entrySet()) {
             var pos=item.getKey();var entry=item.getValue();

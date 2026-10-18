@@ -57,7 +57,7 @@ public final class StagePartitionConfig {
             angleRange = Math.max(1, Math.min(360, angleRange));
             // 未填写时由阶段道路宽度提供默认建筑间隔。
             maxParallelWidth = Math.max(1, maxParallelWidth);
-            maxParallelLength = Math.max(1, maxParallelLength);
+            maxParallelLength = Math.max(maxParallelWidth, maxParallelLength);
             rowGenerationChance = Math.max(0, Math.min(1, rowGenerationChance));
         }
     }
@@ -129,12 +129,43 @@ public final class StagePartitionConfig {
                                              List<String> warnings) {
         for (String style : styles) for (String stage : stages) {
             try {
+                removeEmptyLegacyRoadDirectories(configDir, style, stage, partitions.getOrDefault(stage, Map.of()));
                 Path root = configDir.resolve(style).resolve(stage).resolve("道路文件");
                 for (String shape : List.of("直道", "弯道", "尽头", "三岔路口", "十字路口")) {
                     Files.createDirectories(root.resolve(shape));
                 }
             } catch (IOException | RuntimeException e) {
                 warnings.add("阶段道路目录创建失败 " + style + "/" + stage + ": " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Before roads became stage-wide, startup created
+     * 风格/阶段/分区/道路文件. Remove only those empty legacy trees so an old
+     * installation does not appear to keep recreating the obsolete layout.
+     */
+    private static void removeEmptyLegacyRoadDirectories(Path configDir, String style, String stage,
+                                                         Map<String, Partition> stagePartitions) throws IOException {
+        for (String partition : stagePartitions.keySet()) {
+            if (!safeName(partition)) continue;
+            Path legacy = configDir.resolve(style).resolve(stage).resolve(partition).resolve("道路文件");
+            if (!Files.isDirectory(legacy)) continue;
+            try (var files = Files.walk(legacy)) {
+                boolean hasFile = files.anyMatch(Files::isRegularFile);
+                if (hasFile) continue;
+            }
+            try (var paths = Files.walk(legacy)) {
+                paths.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+                    try { Files.deleteIfExists(path); }
+                    catch (IOException ignored) { }
+                });
+            }
+            Path partitionRoot = legacy.getParent();
+            if (partitionRoot != null) {
+                try (var children = Files.list(partitionRoot)) {
+                    if (children.findAny().isEmpty()) Files.deleteIfExists(partitionRoot);
+                }
             }
         }
     }

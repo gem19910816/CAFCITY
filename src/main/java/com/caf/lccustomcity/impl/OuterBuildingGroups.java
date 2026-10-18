@@ -21,15 +21,32 @@ final class OuterBuildingGroups {
             for(int x=Math.max(0,p.x()-1);x<Math.min(cells.length,p.x()+p.building().width()+1);x++)
                 for(int z=Math.max(0,p.z()-1);z<Math.min(cells[0].length,p.z()+p.building().depth()+1);z++){
                     var other=cells[x][z].placement();
-                    if(other==null||!other.building().outer())continue;
+                    if(other==null||!sameRowFamily(p.building(), other.building()))continue;
                     var group=groups.get(other);
                     if(group!=null&&seen.add(group))joined.addAll(group);
                 }
         }
         return joined;
     }
+    private static boolean sameRowFamily(com.caf.lccustomcity.config.LayoutCatalog.Building a,
+                                         com.caf.lccustomcity.config.LayoutCatalog.Building b) {
+        return (a.outer() || a.zone() != null) && a.outer() == b.outer()
+                && Objects.equals(a.zone(), b.zone());
+    }
     boolean accepts(Placement p) { return rectangular(joined(List.of(p))); }
     boolean accepts(List<Placement> additions) { return rectangular(joined(additions)); }
+    Set<Placement> members(List<Placement> additions) { return joined(additions); }
+    void replace(Map<Placement, Placement> replacements) {
+        if (replacements.isEmpty()) return;
+        var updated = new HashMap<Placement, Set<Placement>>();
+        for (var group : new HashSet<>(groups.values())) {
+            var members = new HashSet<Placement>();
+            for (var member : group) members.add(replacements.getOrDefault(member, member));
+            for (var member : members) updated.put(member, members);
+        }
+        groups.clear();
+        groups.putAll(updated);
+    }
     void placed(Placement p) {
         var joined=joined(List.of(p));
         for(var member:joined)groups.put(member,joined);

@@ -17,7 +17,11 @@ public abstract class CityFoundationMixin {
     @Inject(method="doCityChunk(Lmcjty/lostcities/worldgen/lost/BuildingInfo;Lmcjty/lostcities/worldgen/ChunkHeightmap;Lnet/minecraft/world/level/chunk/ChunkAccess;)V",
             at=@At("HEAD"),require=0)
     private void caf$solidFoundation(BuildingInfo info,ChunkHeightmap heightmap,ChunkAccess chunk,CallbackInfo ci){
-        if(ForceFlattenConfig.enabled()&&info.isCity&&CityLayout.enabledFor(info.coord,provider,info.profile))
-            CityFoundation.fill(driver,info.getCityGroundLevel());
+        if(ForceFlattenConfig.enabled()&&info.isCity&&CityLayout.enabledFor(info.coord,provider,info.profile)){
+            int ground=info.getCityGroundLevel();
+            CityFoundation.clearSurfaceFluids(driver,ground);
+            CityFoundation.fill(driver,ground);
+            CityFoundation.clearAbove(driver,ground);
+        }
     }
 }

@@ -160,6 +160,9 @@ public final class RoadNbtRuntime {
         int chunkX = coord.chunkX() - originChunkX, chunkZ = coord.chunkZ() - originChunkZ;
         if (chunkX < 0 || chunkZ < 0 || chunkX >= chunksX || chunkZ >= chunksZ) return false;
         Rotation rotation = rotation(turns);
+        record Pending(int x, int y, int z, BlockState state) {}
+        List<Pending> lowerHalf = new ArrayList<>();
+        List<Pending> upperHalf = new ArrayList<>();
         for (int y = 0; y < data.sizeY; y++) for (int z = 0; z < 16; z++) for (int x = 0; x < 16; x++) {
             int rx = chunkX * 16 + x - offsetX, rz = chunkZ * 16 + z - offsetZ;
             int sx, sz;
@@ -170,13 +173,24 @@ public final class RoadNbtRuntime {
                 default -> { sx = rx; sz = rz; }
             }
             String stateId = data.blockAt(sx, y, sz);
-            if (SchematicData.isAirState(stateId)) continue;
+            if (stateId == null || isStructureVoid(stateId)) continue;
             BlockState state = parseState(stateId);
             if (state == null) continue;
             int worldX = originChunkX * 16 + rx + offsetX;
             int worldZ = originChunkZ * 16 + rz + offsetZ;
             int worldY = groundY + y;
-            driver.current(x, worldY, z).block(state.rotate(rotation));
+            BlockState rotated = state.rotate(rotation);
+            if (state.isAir()) {
+                driver.current(x, worldY, z).block(rotated);
+                continue;
+            }
+            // Double plants and door-like blocks must be written as a pair.  Do
+            // all normal blocks first, then every lower half, then every upper
+            // half.  This prevents the upper block's neighbour update from
+            // deleting the lower half (the intermittent half-tall-grass bug).
+            if (isUpperHalf(rotated)) upperHalf.add(new Pending(x, worldY, z, rotated));
+            else if (isLowerHalf(rotated)) lowerHalf.add(new Pending(x, worldY, z, rotated));
+            else driver.current(x, worldY, z).block(rotated);
             Map<String, Object> blockEntity = DynamicNbt.paletteTag(data, sx, y, sz);
             if (blockEntity != null) {
                 try {
@@ -193,13 +207,33 @@ public final class RoadNbtRuntime {
                         restored.putInt("y", worldY);
                         restored.putInt("z", worldZ);
                     }
-                    provider.getWorld().getChunk(pos).setBlockEntityNbt(restored);
+                    ImportedBlockEntities.ROAD.queueResolved(provider.getWorld().getChunk(pos), pos, rotated, restored);
                 } catch (IOException | RuntimeException e) {
                     warn(file, "道路 NBT 方块实体放置失败", e);
                 }
             }
         }
+        for (Pending pending : lowerHalf)
+            driver.setBlockRange(pending.x(), pending.y(), pending.z(), pending.y() + 1, pending.state());
+        for (Pending pending : upperHalf)
+            driver.setBlockRange(pending.x(), pending.y(), pending.z(), pending.y() + 1, pending.state());
         return true;
+    }
+
+    private static boolean isStructureVoid(String stateId) {
+        int properties = stateId.indexOf('[');
+        String blockId = properties < 0 ? stateId : stateId.substring(0, properties);
+        return "minecraft:structure_void".equals(blockId);
+    }
+
+    private static boolean isUpperHalf(BlockState state) {
+        var half = state.getBlock().getStateDefinition().getProperty("half");
+        return half != null && "upper".equals(String.valueOf(state.getValue(half)));
+    }
+
+    private static boolean isLowerHalf(BlockState state) {
+        var half = state.getBlock().getStateDefinition().getProperty("half");
+        return half != null && "lower".equals(String.valueOf(state.getValue(half)));
     }
 
     private static List<Path> files(Path folder) {
