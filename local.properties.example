@@ -20,3 +20,6 @@ minecraft_libraries=
 java_home=
 lostcities_jar=
 minecraft_version_json=
+
+# Current validated inputs: LC 1.21-8.4.6, Create 6.0.10.
+# build.ps1 also finds Create and its nested compile-only jars beside lostcities_jar.

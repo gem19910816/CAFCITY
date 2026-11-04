@@ -1,0 +1,12 @@
+{
+  "version": "1.0.211",
+  "minecraft": "1.21.1",
+  "artifact": "caf_lc_customcity-1.21.1-1.0.211.jar",
+  "sha256": "97ccb580e1c2b87d60983dcb336ce0255b5ab093f2d6c43e4313401d04814e5d",
+  "java_sources": 106,
+  "build_entry": "build.ps1",
+  "recompiled_jar_entries_identical": true,
+  "actual_sponge_offline_transform": true,
+  "live_worldgen_tested": false,
+  "third_party_jars_bundled": false
+}

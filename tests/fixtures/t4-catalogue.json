@@ -1,0 +1,1127 @@
+{
+  "description": "Offline T4 catalogue metadata for the NASA station regression; no NBT or game resources included.",
+  "catalogue": [
+    {
+      "source": "CAF工业超市.nbt",
+      "id": "caf_lc_customcity:s5071fa38_caf_dc70d722",
+      "width": 11,
+      "depth": 8,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "三连楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_4c4e33c1",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "三链民居[完整].nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_b1072705",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "三链民居[破损].nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_660ae7ea",
+      "width": 3,
+      "depth": 3,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "临时医疗点.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_9747fa7f",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "以沦陷的聚集地.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_7be77f08",
+      "width": 5,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "俱乐部.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_e9c934bb",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "公司093.nbt",
+      "id": "caf_lc_customcity:s5071fa38_093_9d42bf58",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "公寓楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_434bbb4f",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "内城工业建筑.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_58540fa9",
+      "width": 5,
+      "depth": 8,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "写字楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_15d0bb2c",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 8,
+        "heightBlocks": 76,
+        "visualGroup": "写字楼"
+      }
+    },
+    {
+      "source": "出版社.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_173dd954",
+      "width": 2,
+      "depth": 3,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "办公楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_1e4769aa",
+      "width": 3,
+      "depth": 4,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "加油站.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_44765452",
+      "width": 3,
+      "depth": 3,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "医院.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_41fc8561",
+      "width": 7,
+      "depth": 7,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "双子楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_4f841100",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "咖啡办公楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_177e27b9",
+      "width": 2,
+      "depth": 3,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "商店.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_cf8da0db",
+      "width": 4,
+      "depth": 3,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "图书唱片馆.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_1e22fcde",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "图书馆学习区.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_f2f84af2",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "大学.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_5fd11991",
+      "width": 11,
+      "depth": 10,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "宿舍.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_50867d20",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "小商业街.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_56685e3a",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "小夜工厂.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_8fae52ac",
+      "width": 5,
+      "depth": 5,
+      "profile": {
+        "uses": 24,
+        "heightBlocks": 58,
+        "visualGroup": "sunshine-soda"
+      }
+    },
+    {
+      "source": "居民楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_0fcd944e",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "工作室.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_907bf1bf",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "市区图书馆.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_b38de0ea",
+      "width": 1,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "市政.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_933b05e7",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "市政府.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_c1f3e291",
+      "width": 4,
+      "depth": 3,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "幸存者对抗.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_354e823b",
+      "width": 6,
+      "depth": 4,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "幸存者据点[小].nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_7d7d3e3f",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "幸存者营地.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_67d4d54e",
+      "width": 4,
+      "depth": 4,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "影视大厦.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_2addb546",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "文物馆.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_03557db2",
+      "width": 6,
+      "depth": 5,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "普通办公室.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_4a9a95b2",
+      "width": 1,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "未命名.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_795e5320",
+      "width": 3,
+      "depth": 3,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "杂货店.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_2b003a90",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "枪械店.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_5d81724f",
+      "width": 2,
+      "depth": 3,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "校车站.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_0279023a",
+      "width": 6,
+      "depth": 3,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_c718184a",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居1.nbt",
+      "id": "caf_lc_customcity:s5071fa38_1_7742b72d",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居10.nbt",
+      "id": "caf_lc_customcity:s5071fa38_10_f378b8b7",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居11.nbt",
+      "id": "caf_lc_customcity:s5071fa38_11_77f0531c",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居12.nbt",
+      "id": "caf_lc_customcity:s5071fa38_12_6335a80d",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居13.nbt",
+      "id": "caf_lc_customcity:s5071fa38_13_f7c0e35a",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居14.nbt",
+      "id": "caf_lc_customcity:s5071fa38_14_34da698b",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居19.nbt",
+      "id": "caf_lc_customcity:s5071fa38_19_a0ffa294",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居2.nbt",
+      "id": "caf_lc_customcity:s5071fa38_2_75ddd9bc",
+      "width": 1,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居20.nbt",
+      "id": "caf_lc_customcity:s5071fa38_20_2b8c2a20",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居21.nbt",
+      "id": "caf_lc_customcity:s5071fa38_21_a7148fbb",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居22.nbt",
+      "id": "caf_lc_customcity:s5071fa38_22_7ec6fd3e",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居23.nbt",
+      "id": "caf_lc_customcity:s5071fa38_23_e768c0b1",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居24.nbt",
+      "id": "caf_lc_customcity:s5071fa38_24_eca34f4c",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居25.nbt",
+      "id": "caf_lc_customcity:s5071fa38_25_4f392b27",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居26.nbt",
+      "id": "caf_lc_customcity:s5071fa38_26_be30fc4a",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居27.nbt",
+      "id": "caf_lc_customcity:s5071fa38_27_294d28bd",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居28.nbt",
+      "id": "caf_lc_customcity:s5071fa38_28_f1731138",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居29.nbt",
+      "id": "caf_lc_customcity:s5071fa38_29_4a284333",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居3.nbt",
+      "id": "caf_lc_customcity:s5071fa38_3_f1663f57",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居30.nbt",
+      "id": "caf_lc_customcity:s5071fa38_30_27dc1625",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居31.nbt",
+      "id": "caf_lc_customcity:s5071fa38_31_37e472d2",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居4.nbt",
+      "id": "caf_lc_customcity:s5071fa38_4_ca88ee2e",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居5.nbt",
+      "id": "caf_lc_customcity:s5071fa38_5_35fdb2e1",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居6.nbt",
+      "id": "caf_lc_customcity:s5071fa38_6_b46c8950",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居7.nbt",
+      "id": "caf_lc_customcity:s5071fa38_7_466d0fab",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居8.nbt",
+      "id": "caf_lc_customcity:s5071fa38_8_11c4d5d2",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "民居9.nbt",
+      "id": "caf_lc_customcity:s5071fa38_9_01bc7925",
+      "width": 4,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "汽水研发办公楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_0916f7c8",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "汽车博物馆.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_63433374",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "汽车餐厅.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_1e2653d4",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "沦陷的办公大楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_78512698",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "法外之地.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_cc55f7bc",
+      "width": 4,
+      "depth": 4,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "流浪动物收容所.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_292ada83",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "消防站.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_763292bd",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 5,
+        "heightBlocks": 20,
+        "visualGroup": "消防站"
+      }
+    },
+    {
+      "source": "焚毁的幸存者营地.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_cebf2f37",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "理发店.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_e48e1fde",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "甜品店.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_56bb8374",
+      "width": 2,
+      "depth": 1,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "生物科技实验楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_2bd9275d",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "电子产品店.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_c3c13fe2",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 2,
+        "heightBlocks": 11,
+        "visualGroup": "电子产品店"
+      }
+    },
+    {
+      "source": "电视台.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_55e80779",
+      "width": 1,
+      "depth": 1,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "社区医院[别墅改造].nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_f2f3a226",
+      "width": 5,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "红夜总部[生化公司].nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_9df3e83a",
+      "width": 4,
+      "depth": 4,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "纯黑的黑碳黑场.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_2bbe19df",
+      "width": 8,
+      "depth": 9,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "航天公司.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_d51bb9d5",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "被土匪洗劫的幸存者营地外加邪教.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_0f2356eb",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "警局.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_1bf5d7ba",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "豪华酒店.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_60208007",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "通讯公司.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_76cbf0c3",
+      "width": 1,
+      "depth": 1,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "酒厂.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_42da0778",
+      "width": 5,
+      "depth": 5,
+      "profile": {
+        "uses": 24,
+        "heightBlocks": 58,
+        "visualGroup": "sunshine-soda"
+      }
+    },
+    {
+      "source": "酒店.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_d803f76f",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "银行.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_4860d1f6",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "青年公寓.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_8cf44b03",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "餐厅.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_3f7a01eb",
+      "width": 4,
+      "depth": 2,
+      "profile": {
+        "uses": 34,
+        "heightBlocks": 23,
+        "visualGroup": "餐厅"
+      }
+    },
+    {
+      "source": "餐厅2.nbt",
+      "id": "caf_lc_customcity:s5071fa38_2_dd24f3db",
+      "width": 3,
+      "depth": 3,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "餐厅3.nbt",
+      "id": "caf_lc_customcity:s5071fa38_3_619c8e40",
+      "width": 3,
+      "depth": 2,
+      "profile": {
+        "uses": 2,
+        "heightBlocks": 9,
+        "visualGroup": "餐厅3"
+      }
+    },
+    {
+      "source": "高层豪华酒店.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_22dd2ac5",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "黑帮楼.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_feeb0a09",
+      "width": 2,
+      "depth": 2,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "室内体育场.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_9f496f78",
+      "width": 13,
+      "depth": 11,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "体育场.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_410f96c9",
+      "width": 17,
+      "depth": 13,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "空军基地.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_6bd81bb1",
+      "width": 15,
+      "depth": 14,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "小型军营.nbt",
+      "id": "caf_lc_customcity:s5071fa38_building_248814ce",
+      "width": 4,
+      "depth": 4,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    },
+    {
+      "source": "nasa.nbt",
+      "id": "caf_lc_customcity:s5071fa38_nasa_f521f055",
+      "width": 14,
+      "depth": 25,
+      "profile": {
+        "uses": 0,
+        "heightBlocks": 0,
+        "visualGroup": ""
+      }
+    }
+  ]
+}

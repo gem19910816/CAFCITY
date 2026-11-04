@@ -22,7 +22,8 @@
     "FillPlotsMixin",
     "DynamicStructureMixin",
     "CreateRailwayMixin",
-    "CreateRailCountMixin"
+    "CreateRailCountMixin",
+    "UndergroundStationAccessMixin"
   ],
   "injectors": {
     "defaultRequire": 1

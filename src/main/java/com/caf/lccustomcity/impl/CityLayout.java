@@ -8,6 +8,8 @@ import mcjty.lostcities.varia.ChunkCoord;
 import mcjty.lostcities.worldgen.IDimensionInfo;
 import mcjty.lostcities.worldgen.lost.BuildingInfo;
 import mcjty.lostcities.worldgen.lost.City;
+import mcjty.lostcities.worldgen.lost.Railway;
+import mcjty.lostcities.api.RailChunkType;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -26,7 +28,9 @@ public final class CityLayout {
             this(center, style, outer, unrestricted, null, false, false);
         }
     }
-    public record Cell(UniquePlotPacking.Placement placement) {}
+    public record Cell(UniquePlotPacking.Placement placement, boolean suppressUndergroundStationAccess) {
+        public Cell(UniquePlotPacking.Placement placement) { this(placement, false); }
+    }
     private record Context(Object world, Object dimension, LostCityProfile profile, long seed, long revision,
                            long stageRevision,
                            int minRadius, int maxRadius, float threshold, double chance) {}
@@ -360,6 +364,31 @@ public final class CityLayout {
                 && worldSpawn != null;
         int spawnChunkX = worldSpawn == null ? Integer.MIN_VALUE : Math.floorDiv(worldSpawn.getX(), 16);
         int spawnChunkZ = worldSpawn == null ? Integer.MIN_VALUE : Math.floorDiv(worldSpawn.getZ(), 16);
+        // Keep the native surface/station veto for ordinary buildings. A required
+        // landmark wider than the station period may cross a deep underground
+        // station, whose surface access is then removed only during generation.
+        // Never query our own plan from Railway: makePlot itself queries Railway.
+        var layoutRules = stageGeometry == null ? null : stageGeometry.layout();
+        Set<String> stationThroughBuildings = new HashSet<>();
+        for (var building : catalog.buildings())
+            if (UndergroundStationPlots.requiredLandmark(building, layoutRules,
+                    profile.RAILWAY_SPACING_EAST_WEST, profile.RAILWAY_SPACING_NORTH_SOUTH))
+                stationThroughBuildings.add(building.id());
+        boolean stationException = !stationThroughBuildings.isEmpty();
+        boolean[][] stationAccess = new boolean[sx][sz];
+        boolean[][] stationPlots = new boolean[sx][sz];
+        boolean[][] surfaceRail = new boolean[sx][sz];
+        if (stationException && (profile.RAILWAYS_ENABLED || profile.RAILWAY_STATIONS_ENABLED)) {
+            int partLevels = p.getWorldStyle().getWorldSettings().railPartHeight6();
+            for (int x=0;x<sx;x++) for (int z=0;z<sz;z++) {
+                var rail = Railway.getRailChunkType(new ChunkCoord(coord.dimension(),ox+x,oz+z),p,profile);
+                boolean underground = UndergroundStationPlots.deepStation(rail, partLevels);
+                stationPlots[x][z] = underground;
+                stationAccess[x][z] = underground && rail.getType() == RailChunkType.STATION_UNDERGROUND;
+                surfaceRail[x][z] = !underground && (rail.getType().isSurface() || rail.getType().isStation());
+            }
+        }
+        var stationMask = new UndergroundStationPlots(stationPlots);
         Cell[][] cells=CityPlotPlan.create(sx,sz,RadialZonePlan.citySeed(p.getSeed(),ox,oz),catalog,
                 (x,z)->{
                     ChunkCoord c=new ChunkCoord(coord.dimension(),ox+x,oz+z);
@@ -390,17 +419,18 @@ public final class CityLayout {
                     boolean spawnRoad = forceVillageSpawnRoad
                             && c.chunkX() == spawnChunkX && c.chunkZ() == spawnChunkZ;
                     return !spawnRoad && !predefined(c,p) && !BuildingInfo.hasHighway(c,p,profile)
-                            // Deep transit tracks do not occupy a surface building plot.
-                            // Keep stations (including underground access) and surface tracks clear.
-                            && (!(profile.RAILWAYS_ENABLED || profile.RAILWAY_STATIONS_ENABLED) || !BuildingInfo.hasRailwayAtSurface(c,p,profile));
-                },(b,x,z)->true, stageGeometry == null ? null : stageGeometry.layout(),
+                            && (stationException ? !surfaceRail[x][z]
+                                : (!(profile.RAILWAYS_ENABLED || profile.RAILWAY_STATIONS_ENABLED)
+                                    || !BuildingInfo.hasRailwayAtSurface(c,p,profile)));
+                },(b,x,z)->!stationException || stationThroughBuildings.contains(b.id()) || !stationMask.intersects(b,x,z), layoutRules,
                 stageGeometry == null ? Map.of() : stageGeometry.partitions(),
                 stage == null || stage.road() == null ? 1 : stage.road().width());
         Map<UniquePlotPacking.Placement,UniquePlotPacking.Placement> absolute=new HashMap<>();
         for(int x=0;x<sx;x++) for(int z=0;z<sz;z++){
             var local=cells[x][z].placement();
             if(local!=null) cells[x][z]=new Cell(absolute.computeIfAbsent(local,
-                    a->new UniquePlotPacking.Placement(a.building(),ox+a.x(),oz+a.z())));
+                    a->new UniquePlotPacking.Placement(a.building(),ox+a.x(),oz+a.z())),
+                    stationAccess[x][z] && stationThroughBuildings.contains(local.building().id()));
         }
         Set<UniquePlotPacking.Placement> placements=new HashSet<>();
         for(Cell[] column:cells)for(Cell cell:column)if(cell.placement()!=null)placements.add(cell.placement());

@@ -34,3 +34,8 @@ bin/
 
 # 工作/过程文档不放在源码仓库；统一存放在
 # 开发者缓存目录下的同名工程文件夹
+
+# Python and standalone regression outputs
+__pycache__/
+*.pyc
+/tests/.work/
