@@ -12,6 +12,7 @@ import java.util.*;
 public final class ImportedBlockEntities {
     private record Entry(BlockState state,CompoundTag tag) {}
     public static final ImportedBlockEntities ROAD = new ImportedBlockEntities();
+    public static final ImportedBlockEntities RAILWAY = new ImportedBlockEntities();
     private final Map<ChunkAccess,Map<BlockPos,Entry>> pending=new WeakHashMap<>();
     public boolean queue(ChunkAccess chunk,BlockPos pos,BlockState state,CompoundTag carrier) {
         if(carrier==null||!carrier.contains(DynamicNbt.BE_KEY))return false;

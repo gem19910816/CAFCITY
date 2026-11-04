@@ -1,0 +1,44 @@
+{
+  "palette": [
+    {
+      "char": "\ue100",
+      "block": "minecraft:stone_bricks"
+    },
+    {
+      "char": "\ue101",
+      "block": "minecraft:polished_andesite"
+    },
+    {
+      "char": "\ue102",
+      "block": "minecraft:gravel"
+    },
+    {
+      "char": "\ue103",
+      "block": "create:track[shape=xo,turn=false,waterlogged=false]"
+    },
+    {
+      "char": "\ue104",
+      "block": "minecraft:air"
+    },
+    {
+      "char": "\ue105",
+      "block": "doomsday_decoration:fluorescentlamp_1[facing=north]"
+    },
+    {
+      "char": "\ue106",
+      "block": "minecraft:mossy_stone_bricks"
+    },
+    {
+      "char": "\ue107",
+      "block": "doomsday_decoration:crack[facing=south]"
+    },
+    {
+      "char": "\ue108",
+      "block": "minecraft:glowstone"
+    },
+    {
+      "char": "\ue109",
+      "block": "minecraft:wall_torch[facing=south]"
+    }
+  ]
+}

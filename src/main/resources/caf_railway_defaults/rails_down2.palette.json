@@ -1,0 +1,24 @@
+{
+  "palette": [
+    {
+      "char": "\ue300",
+      "block": "minecraft:stone_bricks"
+    },
+    {
+      "char": "\ue301",
+      "block": "minecraft:gravel"
+    },
+    {
+      "char": "\ue302",
+      "block": "minecraft:air"
+    },
+    {
+      "char": "\ue303",
+      "block": "create:track[shape=xo,turn=false,waterlogged=false]"
+    },
+    {
+      "char": "\ue304",
+      "block": "create:track[shape=ae,turn=false,waterlogged=false]"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-# CAF Lost Cities Custom City Addon - build script
+﻿# CAF Lost Cities Custom City Addon - build script
 #
 # This mod deliberately depends only on FML classes (no Minecraft classes), so
 # building it needs just JDK 21 plus a few jars already present in the instance.
@@ -225,7 +225,22 @@ if (-not (Test-Path -LiteralPath $realCpFile)) {
     if (-not (Test-Path -LiteralPath $realCpFile)) { Fail "Could not generate build\real-cp.txt." }
 }
 $realCp = (Get-Content -LiteralPath $realCpFile -Raw -Encoding UTF8).Trim()
-$fullCp = @($cp, $mixinJar, $lcJar, $realCp) -join ';'
+$createJar = Get-ChildItem -LiteralPath ([System.IO.Path]::GetDirectoryName($lcJar)) -Filter '*create-1.21.1-*.jar' -File | Select-Object -First 1
+if (-not $createJar) { Fail "Create jar not found for railway integration." }
+$depDir = Join-Path $root 'build/create-compile-only'
+New-Item -ItemType Directory -Force -Path $depDir | Out-Null
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$createZip = [System.IO.Compression.ZipFile]::OpenRead($createJar.FullName)
+try {
+    foreach ($entry in $createZip.Entries) {
+        if ($entry.FullName -like 'META-INF/jarjar/*.jar') {
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry,(Join-Path $depDir $entry.Name),$true)
+        }
+    }
+} finally { $createZip.Dispose() }
+$createCp = (@($createJar.FullName) + @(Get-ChildItem -LiteralPath $depDir -Filter *.jar -File | ForEach-Object {$_.FullName})) -join ';'
+$neoCompile = Find-Newest (Join-Path $libs 'net/neoforged/neoforge') '*-universal.jar'
+$fullCp = @($cp, $mixinJar, $lcJar, $realCp, $createCp, $neoCompile) -join ';' 
 Write-Host "Compiling $($all.Count) java file(s) with the full game classpath..." -ForegroundColor Cyan
 # Compile together because asset generation, command handlers and runtime code
 # share types across packages; separate passes break those valid references.

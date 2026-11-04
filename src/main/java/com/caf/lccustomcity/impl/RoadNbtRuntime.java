@@ -113,6 +113,35 @@ public final class RoadNbtRuntime {
         return placed;
     }
 
+    /** Fallback road tile for the shared spawn chunk when the planned road graph misses it. */
+    public static boolean placeSpawnRoad(ChunkDriver driver, ChunkCoord coord, IDimensionInfo provider,
+                                         LostCityProfile profile, int groundY) {
+        Path root = configRoot;
+        if (root == null || !CityStageConfig.current().enabled()) return false;
+        CityLayout.Center center = CityLayout.center(coord, provider, profile);
+        if (center == null) return false;
+        CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, profile, center.x(), center.z());
+        if (stage == null || !CityStageConfig.VILLAGE.equals(stage.name())) return false;
+        String style = CityStageRuntime.selectedStyle(provider, stage, center.x(), center.z());
+        if (style == null) return false;
+        Path folder = root.resolve(style).resolve(stage.name()).resolve("道路文件").resolve("直道").normalize();
+        if (!folder.startsWith(root) || !Files.isDirectory(folder)) return false;
+        List<Path> variants = files(folder);
+        if (variants.isEmpty()) return false;
+        long hash = mix(provider.getSeed() ^ ((long) coord.chunkX() << 32) ^ coord.chunkZ());
+        Path file = weightedVariant(variants, stage.road() == null ? Map.of() : stage.road().weights(),
+                null, "直道", hash);
+        SchematicData data = load(file);
+        if (data == null || data.sizeX != 16 || data.sizeZ != 16) {
+            warn(file, "出生点直道路图必须正好是 16x16 格", null);
+            return false;
+        }
+        boolean placed = placeStructure(driver, coord, provider, file, data, coord.chunkX(), coord.chunkZ(),
+                0, groundY, 0, 0);
+        if (placed) diagnose("spawn-road:" + folder, "出生区块没有接入道路网，已回退放置乡村直道路：" + file.getFileName());
+        return placed;
+    }
+
     private static void diagnose(String key, String message) {
         if (DIAGNOSTICS.add(key)) LOG.info("[CAF-LC-RoadNbt] " + message);
     }

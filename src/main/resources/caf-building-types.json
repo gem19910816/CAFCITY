@@ -1,0 +1,695 @@
+[
+  {
+    "sha256": "26f5c16adb93a16ad9e1d79f5b7bbd932ce07428845b9124d36102170b982736",
+    "name": "CAF工业超市",
+    "uses": 2,
+    "height": 15,
+    "visualGroup": "CAF工业超市"
+  },
+  {
+    "sha256": "e25bc30305154be0a0c79b74dcc330d11e829c3949f86f013613c85c481bfe29",
+    "name": "三连楼",
+    "uses": 1,
+    "height": 21,
+    "visualGroup": "三连楼"
+  },
+  {
+    "sha256": "dcb693a19408287a2e5abdcb244a7d3f9ee30cd7e504ce033ef7cfc4520808cb",
+    "name": "三链民居[完整]",
+    "uses": 1,
+    "height": 21,
+    "visualGroup": "三链民居[完整]"
+  },
+  {
+    "sha256": "b66cf903f2de42793fb565066eaf30502352816f0786a5318ac7cc3818258596",
+    "name": "三链民居[破损]",
+    "uses": 1,
+    "height": 23,
+    "visualGroup": "三链民居[破损]"
+  },
+  {
+    "sha256": "1a2b400714a52ddb36279e985ebb9fd252501874664744e8c4317146bd8bd919",
+    "name": "临时医疗点",
+    "uses": 4,
+    "height": 17,
+    "visualGroup": "临时医疗点"
+  },
+  {
+    "sha256": "c9629bb40ff6df15b54c5e56d4d067da912ead2e990d7c95cf5f37cde0c967d0",
+    "name": "以沦陷的聚集地",
+    "uses": 43,
+    "height": 70,
+    "visualGroup": "以沦陷的聚集地"
+  },
+  {
+    "sha256": "e947d43b493952ffdb004b970b154031086212e1e706f13b3d612986bd28adad",
+    "name": "俱乐部",
+    "uses": 2,
+    "height": 11,
+    "visualGroup": "俱乐部"
+  },
+  {
+    "sha256": "6da3adad27594b71c7fb919d797b8af0be770db0db94b6b2d3957ebfac5dcc99",
+    "name": "公司093",
+    "uses": 8,
+    "height": 132,
+    "visualGroup": "公司093"
+  },
+  {
+    "sha256": "c25f316f61cd14bcc742f6bcfdc7f6e0769a6d2d80f140b880b72ec88aef8fcc",
+    "name": "公寓楼",
+    "uses": 1,
+    "height": 56,
+    "visualGroup": "公寓楼"
+  },
+  {
+    "sha256": "d844a1c796624b8e0d24c26bd26ce4bb849a1ed8d992ee831703320e7ad3c493",
+    "name": "内城工业建筑",
+    "uses": 16,
+    "height": 43,
+    "visualGroup": "内城工业建筑"
+  },
+  {
+    "sha256": "944900387d205bf4d892e16fcddc151a647ab43ce1f9098ae76a627ea1b465fd",
+    "name": "写字楼",
+    "uses": 8,
+    "height": 76,
+    "visualGroup": "写字楼"
+  },
+  {
+    "sha256": "014811ce1d38a8a93bc422b5f962f1373657b4afa760cab8a87d26ce9939de4f",
+    "name": "出版社",
+    "uses": 8,
+    "height": 61,
+    "visualGroup": "出版社"
+  },
+  {
+    "sha256": "20f73b9f4d3674cf9b967aab3f00b50ea7e9b4222b3cd367aafb2dfc39d2fc4f",
+    "name": "办公楼",
+    "uses": 40,
+    "height": 30,
+    "visualGroup": "办公楼"
+  },
+  {
+    "sha256": "6f17e1355fa5de6fd49429ee9f5b6daf4b565d69337142653a52cfd6da594fdd",
+    "name": "加油站",
+    "uses": 2,
+    "height": 13,
+    "visualGroup": "加油站"
+  },
+  {
+    "sha256": "6c17df436012444c3ede5dfbb14b61397a8c29f2027db9b76b108eac7dc12c27",
+    "name": "医院",
+    "uses": 4,
+    "height": 116,
+    "visualGroup": "医院"
+  },
+  {
+    "sha256": "a64e04360054006c17122f57efdea966459106a018e23f89af863bd676353a24",
+    "name": "双子楼",
+    "uses": 10,
+    "height": 61,
+    "visualGroup": "双子楼"
+  },
+  {
+    "sha256": "692ecdc38145ae0b7480e15794b588dfd164783b712996d69fab23e8ff69f1cc",
+    "name": "咖啡办公楼",
+    "uses": 10,
+    "height": 77,
+    "visualGroup": "咖啡办公楼"
+  },
+  {
+    "sha256": "a2c31d5ff0cfadad61d78c61bb01576c887795e487e8fd6985d1a63708005a72",
+    "name": "商店",
+    "uses": 2,
+    "height": 18,
+    "visualGroup": "商店"
+  },
+  {
+    "sha256": "9f503648cf6301c9e2e48447ff7b2292c00326e4a73f9ab1362f48e6dd04907b",
+    "name": "图书唱片馆",
+    "uses": 35,
+    "height": 16,
+    "visualGroup": "图书唱片馆"
+  },
+  {
+    "sha256": "0f3b1c1f7a6ff8b8227a0d0037783aa398bf05f82fac87767c32cc2be25da90a",
+    "name": "图书馆学习区",
+    "uses": 40,
+    "height": 61,
+    "visualGroup": "图书馆学习区"
+  },
+  {
+    "sha256": "7d9bc317817e3f2b1f4d984a4b9b9291740121a244b4c266f966c9afad1bbf6c",
+    "name": "大学",
+    "uses": 34,
+    "height": 33,
+    "visualGroup": "大学"
+  },
+  {
+    "sha256": "04b9d79ba7001abb3bc6d152ddf1291a126f5be88dad655bd292675146fd2b0b",
+    "name": "宿舍",
+    "uses": 1,
+    "height": 26,
+    "visualGroup": "宿舍"
+  },
+  {
+    "sha256": "8a8a5c997304317ebcd53289f262c7a86bd170e45753e4a0eb0ec86ac79dd478",
+    "name": "小商业街",
+    "uses": 10,
+    "height": 12,
+    "visualGroup": "小商业街"
+  },
+  {
+    "sha256": "d77f04a4942707f58de77e96c4908f49c45ffe0872d20ae572f7a0d1ed8ff80e",
+    "name": "小夜工厂",
+    "uses": 24,
+    "height": 58,
+    "visualGroup": "sunshine-soda"
+  },
+  {
+    "sha256": "905968a6528db0a76ab529ca10e71028f2a45b00bcf7ac190414723a60446fa3",
+    "name": "居民楼",
+    "uses": 1,
+    "height": 56,
+    "visualGroup": "居民楼"
+  },
+  {
+    "sha256": "1eec5f581ed66adca522651819551e2f89aafbd4d1df005ad6a48931547cf527",
+    "name": "工作室",
+    "uses": 8,
+    "height": 36,
+    "visualGroup": "工作室"
+  },
+  {
+    "sha256": "3ebd36f5b59d3998d9ee45cfc2ff162a76a7d8d42ff3938ed96851c43d47b64c",
+    "name": "市区图书馆",
+    "uses": 32,
+    "height": 28,
+    "visualGroup": "市区图书馆"
+  },
+  {
+    "sha256": "9de2711e349fe44a60b2220a6283942eec4384fcb5f2ae367fe3800277755ab1",
+    "name": "市政",
+    "uses": 12,
+    "height": 24,
+    "visualGroup": "市政"
+  },
+  {
+    "sha256": "528a01ee615264ea25b111111a138fad2294b6ffdae7e2466da49b68d925587d",
+    "name": "市政府",
+    "uses": 12,
+    "height": 35,
+    "visualGroup": "市政府"
+  },
+  {
+    "sha256": "09a13fed8750320ed5d0d326951a2dfefcbd22f6c91532900ad50d7ab4a17bb1",
+    "name": "幸存者对抗",
+    "uses": 32,
+    "height": 30,
+    "visualGroup": "幸存者对抗"
+  },
+  {
+    "sha256": "5e7170b74e543160d7d46e0ad133d1e7a509c76ad144f220133c99e9366783fb",
+    "name": "幸存者据点[小]",
+    "uses": 0,
+    "height": 17,
+    "visualGroup": "幸存者据点[小]"
+  },
+  {
+    "sha256": "5333aea0cbaed27c8b27222fd42c1e9435dbe0eb117981b094af15a686e41657",
+    "name": "幸存者营地",
+    "uses": 2,
+    "height": 26,
+    "visualGroup": "幸存者营地"
+  },
+  {
+    "sha256": "c8d470d19e76f0b1a41e9a2137ff8f4805d3c1ed7d3e37ec3b4f38f15ef3eac0",
+    "name": "影视大厦",
+    "uses": 10,
+    "height": 58,
+    "visualGroup": "影视大厦"
+  },
+  {
+    "sha256": "a024ee6568e6d653dfeec19a5b42870f991ae2859d0f0b75e24775b3bd75b695",
+    "name": "文物馆",
+    "uses": 34,
+    "height": 37,
+    "visualGroup": "文物馆"
+  },
+  {
+    "sha256": "1f661b864d08b073262cfaa16f95f08f9eef872248c2dd9c855aef73ef847126",
+    "name": "普通办公室",
+    "uses": 8,
+    "height": 63,
+    "visualGroup": "普通办公室"
+  },
+  {
+    "sha256": "1135f12e6fff8106db1976690729002d81a1d55f17c1683fc650e476f7b37822",
+    "name": "未命名",
+    "uses": 8,
+    "height": 86,
+    "visualGroup": "未命名"
+  },
+  {
+    "sha256": "4e8e06fcc142b0ff19e888a3c5d9f91b2fb38f8ed0170f8eb03a635051d5e7ae",
+    "name": "杂货店",
+    "uses": 2,
+    "height": 22,
+    "visualGroup": "杂货店"
+  },
+  {
+    "sha256": "663147da691097471546dc1174c824348eb10c9a28eeb5c794a0140cbacd1281",
+    "name": "枪械店",
+    "uses": 11,
+    "height": 20,
+    "visualGroup": "枪械店"
+  },
+  {
+    "sha256": "da2a00ae9ed17ebadc7729297812d743e21280d4da81a5b15c404949693fdac2",
+    "name": "校车站",
+    "uses": 12,
+    "height": 17,
+    "visualGroup": "校车站"
+  },
+  {
+    "sha256": "5cdd3e80f443a39af1e116e99f0476defa0c9cf70aaf1fe173bfc4256212609e",
+    "name": "民居",
+    "uses": 1,
+    "height": 20,
+    "visualGroup": "民居"
+  },
+  {
+    "sha256": "6efb40b0bcff0aec98f4af66e23af3ed51e1e84bb5abc72c6b8bc5c98fee0bfb",
+    "name": "民居1",
+    "uses": 1,
+    "height": 11,
+    "visualGroup": "民居1"
+  },
+  {
+    "sha256": "925051adc8d3d39dbc2aa3a115e0b12c8612a847dde0c804391e3d34f2821830",
+    "name": "民居1",
+    "uses": 1,
+    "height": 11,
+    "visualGroup": "民居1"
+  },
+  {
+    "sha256": "5d6bcfe493b722ca1eefe874d61a0b6d47431e78c95ae0f1057bc84973cb25bf",
+    "name": "民居10",
+    "uses": 1,
+    "height": 17,
+    "visualGroup": "民居10"
+  },
+  {
+    "sha256": "50a26c5f5b250ce398e286e13c672faad70eb67fdc9e6adf704f11873f34ae3c",
+    "name": "民居11",
+    "uses": 1,
+    "height": 17,
+    "visualGroup": "民居11"
+  },
+  {
+    "sha256": "6ea61d36b66f8d9cd78c70e958c4f1177bfdfb19d917495728963905adcf4287",
+    "name": "民居12",
+    "uses": 1,
+    "height": 17,
+    "visualGroup": "民居12"
+  },
+  {
+    "sha256": "e8f19eafab959761652fc20d01c9ea0a03e70a986c853bb7c9a42e25a000ac20",
+    "name": "民居13",
+    "uses": 1,
+    "height": 17,
+    "visualGroup": "民居13"
+  },
+  {
+    "sha256": "aabfc28dd5b255c535959d632da1d481fd8294130b914611c5798719a8d80392",
+    "name": "民居14",
+    "uses": 1,
+    "height": 17,
+    "visualGroup": "民居14"
+  },
+  {
+    "sha256": "17ff44a2085637854012b80e72a62dc7fb21c282a068090e461ab8096d749eff",
+    "name": "民居19",
+    "uses": 1,
+    "height": 17,
+    "visualGroup": "民居19"
+  },
+  {
+    "sha256": "64a5c96377ec5542005cd21749d38ae464bc03f4394490256645c569d600feda",
+    "name": "民居2",
+    "uses": 1,
+    "height": 8,
+    "visualGroup": "民居2"
+  },
+  {
+    "sha256": "24ee8524f78127562ae8994ab43bc2dde4a27ed8215160576ab39e1aaebe048e",
+    "name": "民居2",
+    "uses": 1,
+    "height": 8,
+    "visualGroup": "民居2"
+  },
+  {
+    "sha256": "90a0e966a1e5a73cd7277a2203c1efdd6f8af4df2229d3cc89a7ed22384e26f2",
+    "name": "民居20",
+    "uses": 1,
+    "height": 17,
+    "visualGroup": "民居20"
+  },
+  {
+    "sha256": "9ce428ae7fa0b9a6968a3fd89c06b737c7f9edc13e977793c8d4d3ca3a71b749",
+    "name": "民居21",
+    "uses": 1,
+    "height": 16,
+    "visualGroup": "民居21"
+  },
+  {
+    "sha256": "bc774922264487607c465a2bd1312e6deddbf1e6a3028ae756a779ab303dda35",
+    "name": "民居22",
+    "uses": 1,
+    "height": 17,
+    "visualGroup": "民居22"
+  },
+  {
+    "sha256": "e00802610a620cf72ba21872ef13a562099bb690507874d942098f5332296c56",
+    "name": "民居23",
+    "uses": 1,
+    "height": 16,
+    "visualGroup": "民居23"
+  },
+  {
+    "sha256": "43a6703ee60d8f2843380156577152c0fc12705083650fe0cd4ae3365ad4c0d5",
+    "name": "民居24",
+    "uses": 1,
+    "height": 12,
+    "visualGroup": "民居24"
+  },
+  {
+    "sha256": "bd37920cb445c5fc11e51f6cba2725306ceff07cc1cc8fe1d2b75dad286213f6",
+    "name": "民居25",
+    "uses": 1,
+    "height": 12,
+    "visualGroup": "民居25"
+  },
+  {
+    "sha256": "291ab9b281e81fc9426d028d49a6a176b3566c6975b3e6e7cb06f5ec7060f411",
+    "name": "民居26",
+    "uses": 1,
+    "height": 12,
+    "visualGroup": "民居26"
+  },
+  {
+    "sha256": "0580cc56550bfb35872918f18485bbf94166edb78e8d51eff3328b19d46c070f",
+    "name": "民居27",
+    "uses": 1,
+    "height": 12,
+    "visualGroup": "民居27"
+  },
+  {
+    "sha256": "5e50bf9d648679bdec7a07510373b4f782cbf60a6205204f309de0bb0dfe8c73",
+    "name": "民居28",
+    "uses": 1,
+    "height": 12,
+    "visualGroup": "民居28"
+  },
+  {
+    "sha256": "bf1c8b6c825d9f5c1069c3a388a41d2214ec34ac1e1172ff466e909100ea0e01",
+    "name": "民居29",
+    "uses": 1,
+    "height": 12,
+    "visualGroup": "民居29"
+  },
+  {
+    "sha256": "f0d33df5d2b21140b945bc766d75597c8d222dd704cbc085750224d94fda5536",
+    "name": "民居3",
+    "uses": 1,
+    "height": 13,
+    "visualGroup": "民居3"
+  },
+  {
+    "sha256": "eabe9a4462b4de729f2873a7924dc323d238d90ba7c61e1f0cedb5a28e970f5d",
+    "name": "民居30",
+    "uses": 1,
+    "height": 12,
+    "visualGroup": "民居30"
+  },
+  {
+    "sha256": "aa0538a7531df9bbd965545215025ea2e6456f2dcda23bef17ae66063b13f8b0",
+    "name": "民居31",
+    "uses": 1,
+    "height": 12,
+    "visualGroup": "民居31"
+  },
+  {
+    "sha256": "7ec7ea1b54bac11ef6a3aaecce4d5972b6d9abee74ec0a06b95e69f0b4ed5ad0",
+    "name": "民居4",
+    "uses": 1,
+    "height": 13,
+    "visualGroup": "民居4"
+  },
+  {
+    "sha256": "449d1d86e7b73f9d1887214cc6a5d1e94305d554e11f1930eb2b4a66720c9541",
+    "name": "民居5",
+    "uses": 1,
+    "height": 10,
+    "visualGroup": "民居5"
+  },
+  {
+    "sha256": "8f64a5676b58505b7a47b1045c2a2f9a25e3f29fc298c09e4f937186d37c5222",
+    "name": "民居6",
+    "uses": 1,
+    "height": 12,
+    "visualGroup": "民居6"
+  },
+  {
+    "sha256": "de860a6c1588b7e97adfdf3b27c0306dae5aab5bf43dbdbc35480ad15b65c471",
+    "name": "民居7",
+    "uses": 1,
+    "height": 13,
+    "visualGroup": "民居7"
+  },
+  {
+    "sha256": "3b253ec4e745e4f7178ae993d7baeda7e721447da126a4485c235517d8697a51",
+    "name": "民居8",
+    "uses": 1,
+    "height": 10,
+    "visualGroup": "民居8"
+  },
+  {
+    "sha256": "b492cd8f10637edddd33b252eb6a26d643cf058cf384a7a92af8b6d432464987",
+    "name": "民居9",
+    "uses": 1,
+    "height": 19,
+    "visualGroup": "民居9"
+  },
+  {
+    "sha256": "77ba528a71827a0f6e80989d1f7dc9f1a94001ad2099b9fa7e6f4915bb9bd20e",
+    "name": "汽水研发办公楼",
+    "uses": 8,
+    "height": 62,
+    "visualGroup": "汽水研发办公楼"
+  },
+  {
+    "sha256": "5462fcf5b55534fad935535fe3bee682813fdbfc45f1fb1073b18e992ad09048",
+    "name": "汽车博物馆",
+    "uses": 32,
+    "height": 22,
+    "visualGroup": "汽车博物馆"
+  },
+  {
+    "sha256": "e4ad784977bd467c9a96902a490deb424ad92a0794f859bdf3886309dd46d228",
+    "name": "汽车餐厅",
+    "uses": 2,
+    "height": 19,
+    "visualGroup": "汽车餐厅"
+  },
+  {
+    "sha256": "5426491f4477d964f3bfb802eee85b698710b4efcc9908f2342aeba13ef3b35e",
+    "name": "沦陷的办公大楼",
+    "uses": 9,
+    "height": 82,
+    "visualGroup": "沦陷的办公大楼"
+  },
+  {
+    "sha256": "c9f66db0bb268d46744a09310bdbb60793c8df765044912f75c6dbc433e4f58f",
+    "name": "法外之地",
+    "uses": 12,
+    "height": 13,
+    "visualGroup": "法外之地"
+  },
+  {
+    "sha256": "ad6bfe1ea17c403b43912ad093e8262569d3d921ac57ac91208fdb37b642235a",
+    "name": "流浪动物收容所",
+    "uses": 12,
+    "height": 8,
+    "visualGroup": "流浪动物收容所"
+  },
+  {
+    "sha256": "40ba99b6a1b8fc55880e7544dc3df1ae042ee8d8c2ce28b71ae327e2c0221d11",
+    "name": "消防站",
+    "uses": 5,
+    "height": 20,
+    "visualGroup": "消防站"
+  },
+  {
+    "sha256": "1bdc7816cbeae30e14ec3f516f27c7ec3eb8de629e16928039ca8303d0ed3f18",
+    "name": "焚毁的幸存者营地",
+    "uses": 9,
+    "height": 60,
+    "visualGroup": "焚毁的幸存者营地"
+  },
+  {
+    "sha256": "a3396eb3e17dd9bbc206a78659c5140e67553b64ae437d5a381ad7387c504463",
+    "name": "理发店",
+    "uses": 0,
+    "height": 10,
+    "visualGroup": "理发店"
+  },
+  {
+    "sha256": "9ae00c76a5b0f06c729f6aa60ab00bbc99359747376abe1f3b11f6307dbb24f0",
+    "name": "甜品店",
+    "uses": 3,
+    "height": 15,
+    "visualGroup": "甜品店"
+  },
+  {
+    "sha256": "4478a0aa5a5bbae23c1296e33c9ae47bea299d253fc2da49d34356859ccfa489",
+    "name": "生物科技实验楼",
+    "uses": 8,
+    "height": 60,
+    "visualGroup": "生物科技实验楼"
+  },
+  {
+    "sha256": "a1d6089db6b9757367a85a5468214b3729d39b2e5ad6d483d21834747a5843dd",
+    "name": "电子产品店",
+    "uses": 2,
+    "height": 11,
+    "visualGroup": "电子产品店"
+  },
+  {
+    "sha256": "a3771c380bb701db40266c4042e68449fcb69dd5b8b72c3b7136116fe270079c",
+    "name": "电视台",
+    "uses": 40,
+    "height": 71,
+    "visualGroup": "电视台"
+  },
+  {
+    "sha256": "0168e16527d8f681ad97ef7a09801f53298cabc06af0b9b84a60f37393b13447",
+    "name": "社区医院[别墅改造]",
+    "uses": 5,
+    "height": 22,
+    "visualGroup": "社区医院[别墅改造]"
+  },
+  {
+    "sha256": "9e4484e5c17f4681be441b92489734fca17f5e8c26b8de4f63a692f309c59894",
+    "name": "红夜总部[生化公司]",
+    "uses": 8,
+    "height": 188,
+    "visualGroup": "红夜总部[生化公司]"
+  },
+  {
+    "sha256": "ba6a1e9cde95e715a026d8b10f49f9f79665b762ba70ec68d72c02c5704ff75e",
+    "name": "纯黑的黑碳黑场",
+    "uses": 24,
+    "height": 57,
+    "visualGroup": "纯黑的黑碳黑场"
+  },
+  {
+    "sha256": "89982c10a545f5808fd6aca0cb2921aa6ffaf1ed9b02eb3961dcecc38f5c5ed8",
+    "name": "航天公司",
+    "uses": 8,
+    "height": 67,
+    "visualGroup": "航天公司"
+  },
+  {
+    "sha256": "cca7b4f567fca0b9549e48c9e1304e3ed32970827fe88086feaa3a07b081e425",
+    "name": "被土匪洗劫的幸存者营地外加邪教",
+    "uses": 0,
+    "height": 61,
+    "visualGroup": "被土匪洗劫的幸存者营地外加邪教"
+  },
+  {
+    "sha256": "e3b2c83106394ae83ce01fa7fb33c110df678154639734d0d2e1afff7dbf59f8",
+    "name": "警局",
+    "uses": 12,
+    "height": 23,
+    "visualGroup": "警局"
+  },
+  {
+    "sha256": "0c067f3a65fd872062d0e404e6b92666fe8ed033ec12cd033482cb505e8f0402",
+    "name": "豪华酒店",
+    "uses": 1,
+    "height": 35,
+    "visualGroup": "豪华酒店"
+  },
+  {
+    "sha256": "23c65a5f42e594e00bd0c8130d0a6c3f780c4c4c632ff9f7239f39eeab6b1e3b",
+    "name": "通讯公司",
+    "uses": 8,
+    "height": 72,
+    "visualGroup": "通讯公司"
+  },
+  {
+    "sha256": "276c614e9b0f910259042ded44cc9b2e48aedde40354c52b2afd9a48360363a7",
+    "name": "酒厂",
+    "uses": 24,
+    "height": 58,
+    "visualGroup": "sunshine-soda"
+  },
+  {
+    "sha256": "cba235701f17bc1a208d76eabf5537afda069e67a6c769a48735b7ec16e0e9ed",
+    "name": "酒店",
+    "uses": 1,
+    "height": 59,
+    "visualGroup": "酒店"
+  },
+  {
+    "sha256": "e46044bbb9cb09e0f3803cdc1845a19d9d1413658d72b9ccd6f2ace3b4a8e70a",
+    "name": "银行",
+    "uses": 8,
+    "height": 36,
+    "visualGroup": "银行"
+  },
+  {
+    "sha256": "7ec0b8530a205f42ddf98fe2e27d06c84609da92fbf4143dd79ebe2dddf31b24",
+    "name": "青年公寓",
+    "uses": 1,
+    "height": 62,
+    "visualGroup": "青年公寓"
+  },
+  {
+    "sha256": "3c16085fe53799e733096b161ed4c97834824bca53f970499f037bf9a52e34a4",
+    "name": "餐厅",
+    "uses": 34,
+    "height": 23,
+    "visualGroup": "餐厅"
+  },
+  {
+    "sha256": "be808ee969b7dead8ce55a786332aaddd7730f5217699e2020cf68b62733d887",
+    "name": "餐厅2",
+    "uses": 7,
+    "height": 12,
+    "visualGroup": "餐厅2"
+  },
+  {
+    "sha256": "ddabae2401b2d8489310b5d1b6cd6f028788c8a003915f382e302bbe8ff62e3a",
+    "name": "餐厅3",
+    "uses": 2,
+    "height": 9,
+    "visualGroup": "餐厅3"
+  },
+  {
+    "sha256": "ae12ec982f6e4dea4341eac6ef9fb4ea2278a15fee7b504371ff7222c86da3c1",
+    "name": "高层豪华酒店",
+    "uses": 3,
+    "height": 45,
+    "visualGroup": "高层豪华酒店"
+  },
+  {
+    "sha256": "af2c2a5e61d641fef97204c94a5f01df191de575df2ffaa1976501f0f9be3c4f",
+    "name": "黑帮楼",
+    "uses": 0,
+    "height": 50,
+    "visualGroup": "黑帮楼"
+  }
+]

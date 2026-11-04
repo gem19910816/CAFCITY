@@ -1,0 +1,36 @@
+{
+  "palette": [
+    {
+      "char": "\ue200",
+      "block": "minecraft:air"
+    },
+    {
+      "char": "\ue201",
+      "block": "minecraft:stone_bricks"
+    },
+    {
+      "char": "\ue202",
+      "block": "minecraft:gravel"
+    },
+    {
+      "char": "\ue203",
+      "block": "create:track[shape=zo,turn=true,waterlogged=false]"
+    },
+    {
+      "char": "\ue204",
+      "block": "create:track[shape=zo,turn=false,waterlogged=false]"
+    },
+    {
+      "char": "\ue205",
+      "block": "create:track[shape=xo,turn=true,waterlogged=false]"
+    },
+    {
+      "char": "\ue206",
+      "block": "create:track[shape=xo,turn=false,waterlogged=false]"
+    },
+    {
+      "char": "\ue207",
+      "block": "create:track[shape=cr_o,turn=false,waterlogged=false]"
+    }
+  ]
+}

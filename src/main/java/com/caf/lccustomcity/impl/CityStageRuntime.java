@@ -132,11 +132,42 @@ public final class CityStageRuntime {
             EligibilityValue cached = ELIGIBILITY_CACHE.get(key);
             if (cached != null) return cached.stage();
         }
-        CityStageConfig.Stage stage = computeAcceptedStage(config, provider, profile, world, spawn, centerX, centerZ);
+        boolean spawnAnchor = centerX == Math.floorDiv(spawn.getX(), 16) * 16
+                && centerZ == Math.floorDiv(spawn.getZ(), 16) * 16;
+        CityStageConfig.Stage stage = spawnAnchor
+                ? computePlannedStage(config, provider, profile, spawn, centerX, centerZ)
+                : computeAcceptedStage(config, provider, profile, world, spawn, centerX, centerZ);
         synchronized (ELIGIBILITY_CACHE) {
             ELIGIBILITY_CACHE.put(key, new EligibilityValue(stage));
         }
         return stage;
+    }
+
+    /** World-wide stage target derived from the configured style ranges. */
+    public static int worldQuota(IDimensionInfo provider, String stageName) {
+        CityStageConfig config = CityStageConfig.current();
+        long total = 0;
+        for (String style : config.stylesForStage(stageName)) {
+            CityStageConfig.StyleStage rule = config.styleStage(style, stageName);
+            if (rule == null || !rule.enabled()) continue;
+            int min = Math.max(0, Math.min(rule.minCities(), rule.maxCities()));
+            int max = Math.max(min, rule.maxCities());
+            long span = (long) max - min + 1;
+            long seed = provider.getSeed() ^ stageName.hashCode() ^ style.hashCode();
+            total += min + Math.floorMod(RadialZonePlan.mix(seed), span);
+        }
+        return (int) Math.min(4096, total);
+    }
+
+    /** Applies the configured minimum center spacing to the global selected set. */
+    public static boolean worldSpacingAllows(IDimensionInfo provider, CityLayout.Center candidate,
+                                             List<CityLayout.Center> accepted) {
+        int candidateMinimum = minimumSpacing(provider, candidate);
+        for (CityLayout.Center other : accepted) {
+            int required = Math.max(candidateMinimum, minimumSpacing(provider, other));
+            if (closerThan(candidate, other, required)) return false;
+        }
+        return true;
     }
 
     /** Cheap deterministic checks used before searching nearby terrain alternatives. */
@@ -267,16 +298,15 @@ public final class CityStageRuntime {
         return center != null && acceptedStage(provider, profile, center.x(), center.z()) != null;
     }
 
-    /**
-     * 对一次候选城心扫描执行阶段城市数量配额。候选城心已经按阶段概率过滤，
-     * 这里再按稳定哈希排序后截取数量上限；因此结果不依赖区块加载顺序。
-     * 下限只在候选数量足够时生效，不能凭空生成 Lost Cities 没有提供的城心。
-     */
+    /** Applies the world allow-list, then keeps the legacy local cap as a secondary guard. */
     public static List<CityLayout.Center> applyQuotas(IDimensionInfo provider, LostCityProfile profile,
                                                         List<CityLayout.Center> candidates) {
         if (candidates.isEmpty()) return candidates;
         CityStageConfig config = CityStageConfig.current();
         if (!config.enabled()) return candidates;
+        candidates = candidates.stream().filter(candidate ->
+                CustomCityCenterPlanner.worldCenterAllowed(provider, profile, candidate.x(), candidate.z())).toList();
+        if (candidates.isEmpty()) return List.of();
         // Enforce minimum spacing before regional count quotas. If quotas run
         // first, two overlapping scan windows can retain different subsets and
         // let the same close pair both survive in different tile plans.

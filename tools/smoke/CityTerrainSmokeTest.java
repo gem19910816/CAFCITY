@@ -104,18 +104,7 @@ public final class CityTerrainSmokeTest {
         return p;
     }
     static void scopes()throws Exception {
-        for(String name:List.of("pillager_outpost","ruined_portal","ruined_portal_mountain","igloo","village_snowy","mansion"))
-            check(CitySurfaceStructures.surface(ResourceLocation.parse("minecraft:"+name),GenerationStep.Decoration.SURFACE_STRUCTURES),"affected vanilla structure "+name);
-        check(!CitySurfaceStructures.surface(ResourceLocation.parse("minecraft:stronghold"),GenerationStep.Decoration.SURFACE_STRUCTURES),"underground stronghold");
-        check(!CitySurfaceStructures.surface(ResourceLocation.parse("minecraft:mineshaft"),GenerationStep.Decoration.UNDERGROUND_STRUCTURES),"mineshaft");
-        check(!CitySurfaceStructures.surface(ResourceLocation.parse("another:castle"),GenerationStep.Decoration.SURFACE_STRUCTURES),"other mods unchanged");
-        for(String name:List.of("pillager_outpost","igloo","ruined_portal","ruined_portal_ocean","village_plains")){
-            try(var in=CityTerrainSmokeTest.class.getResourceAsStream("/data/minecraft/worldgen/structure/"+name+".json")){
-                var json=JsonParser.parseReader(new java.io.InputStreamReader(in,java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
-                check(json.get("step").getAsString().equals("surface_structures"),"real vanilla generation step "+name);
-            }
-        }
-        // Anchor outside the city, far corner within it: the entire start must be rejected.
+        // Any registered StructureStart is rejected by its full footprint, regardless of namespace or step.
         check(CitySurfaceStructures.overlaps(new BoundingBox(-33,0,-33,0,180,0),(x,z)->x==0&&z==0),"cross-boundary footprint / negative coords");
         check(!CitySurfaceStructures.overlaps(new BoundingBox(-33,0,-33,-1,180,-1),(x,z)->x==0&&z==0),"inclusive boundaries");
         for(int min=-49;min<=49;min++)for(int max=min;max<=49;max++){
@@ -151,7 +140,7 @@ public final class CityTerrainSmokeTest {
         info.isCity=true;hook.invoke(mixin,info,null,c,new CallbackInfo("test",false));
         check(driver.getBlock(0,65,0).is(Blocks.STONE),"foundation hook active");
         LayoutCatalog.install(List.of(),Map.of(),.4375);check(!CitySurfaceStructures.suppress(inside,provider),"empty catalog / default cities unchanged");
-        System.out.println("scopes: whole structure overlap, real vanilla steps, underground/mod exemptions, spawn/natural city, off/outside/empty guards");
+        System.out.println("scopes: all namespaces/steps use whole structure footprint; spawn/natural city, off/outside/empty guards");
     }
     static void hooks()throws Exception {
         var node=new org.objectweb.asm.tree.ClassNode();

@@ -2,7 +2,6 @@ package com.caf.lccustomcity.impl;
 
 import com.caf.lccustomcity.config.CityStageConfig;
 import com.caf.lccustomcity.config.SpawnCityConfig;
-import com.caf.lccustomcity.config.StageLayoutConfig;
 import mcjty.lostcities.config.LostCityProfile;
 import mcjty.lostcities.varia.ChunkCoord;
 import mcjty.lostcities.worldgen.IDimensionInfo;
@@ -224,19 +223,23 @@ public final class SpawnCityRule {
      */
     private static Result compute(IDimensionInfo provider, LostCityProfile profile,
                                   int spawnX, int spawnZ, int radius, int centerDistance, int[][] cities) {
-        // In the stage system this setting is a minimum distance: search the
-        // nearest stable, terrain-valid candidate outside the protected spawn
-        // circle. The legacy profile keeps the older maximum-distance behavior.
+        // Stage cities use this as a maximum city-center distance from spawn.
+        // Keep the spawn chunk inside the village so CityLayout can reserve it
+        // as a road instead of selecting a distant planned candidate.
         if (CityStageConfig.current().enabled()) {
-            int minimumSpacing = minimumStageCenterSpacing();
-            int[] eligible = CustomCityCenterPlanner.nearestOutside(provider, profile,
-                    spawnX, spawnZ, centerDistance, cities, minimumSpacing);
-            if (eligible == null) return new Result(false, false, 0, 0, radius);
-            CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, profile, eligible[0], eligible[1]);
-            if (stage == null) return new Result(false, false, 0, 0, radius);
-            String style = CityStageRuntime.selectedStyle(provider, stage, eligible[0], eligible[1]);
-            int stageRadius = CityStageRuntime.radiusBlocks(provider, stage, style, eligible[2], eligible[0], eligible[1]);
-            return new Result(true, true, eligible[0], eligible[1], stageRadius);
+            int[][] eligibleCities = eligibleNativeCities(provider, profile, cities);
+            if (SpawnCityPlan.satisfied(spawnX, spawnZ, centerDistance, eligibleCities)) {
+                return new Result(false, true, 0, 0, radius);
+            }
+            int centerX = Math.floorDiv(spawnX, SpawnCityPlan.CHUNK) * SpawnCityPlan.CHUNK;
+            int centerZ = Math.floorDiv(spawnZ, SpawnCityPlan.CHUNK) * SpawnCityPlan.CHUNK;
+            CityStageConfig.Stage stage = CityStageRuntime.plannedStage(provider, profile, centerX, centerZ);
+            if (stage == null || !CityStageConfig.VILLAGE.equals(stage.name())) {
+                return new Result(false, false, 0, 0, radius);
+            }
+            String style = CityStageRuntime.selectedStyle(provider, stage, centerX, centerZ);
+            int stageRadius = CityStageRuntime.radiusBlocks(provider, stage, style, radius, centerX, centerZ);
+            return new Result(true, true, centerX, centerZ, stageRadius);
         }
         if (SpawnCityPlan.satisfied(spawnX, spawnZ, centerDistance, cities)) {
             return new Result(false, true, 0, 0, radius);
@@ -245,19 +248,29 @@ public final class SpawnCityRule {
         return new Result(true, true, plan[0], plan[1], plan[2]);
     }
 
-    private static int minimumStageCenterSpacing() {
-        int minimum = 0;
-        for (String stageName : CityStageConfig.current().stageNames()) {
-            CityStageConfig.Stage stage = CityStageConfig.current().stage(stageName);
-            if (stage == null || !stage.enabled()) continue;
-            for (String style : CityStageConfig.current().stylesForStage(stageName)) {
-                CityStageRuntime.Geometry geometry = CityStageRuntime.geometry(stage, style);
-                if (geometry == null) continue;
-                StageLayoutConfig.Range spacing = geometry.layout().centerSpacing();
-                if (spacing != null && spacing.min() != null) minimum = Math.max(minimum, spacing.min());
+    private static int[] nearestEligibleSpawnCenter(IDimensionInfo provider, LostCityProfile profile,
+                                                     int spawnX, int spawnZ, int radius, int maxDistance) {
+        int window = Math.max(1, (maxDistance + SpawnCityPlan.CHUNK - 1) / SpawnCityPlan.CHUNK);
+        long maxDistanceSquared = (long) maxDistance * maxDistance;
+        int[] best = null;
+        long bestDistanceSquared = Long.MAX_VALUE;
+        int spawnChunkX = Math.floorDiv(spawnX, SpawnCityPlan.CHUNK);
+        int spawnChunkZ = Math.floorDiv(spawnZ, SpawnCityPlan.CHUNK);
+        for (int chunkX = spawnChunkX - window; chunkX <= spawnChunkX + window; chunkX++) {
+            for (int chunkZ = spawnChunkZ - window; chunkZ <= spawnChunkZ + window; chunkZ++) {
+                int centerX = chunkX * SpawnCityPlan.CHUNK;
+                int centerZ = chunkZ * SpawnCityPlan.CHUNK;
+                long dx = (long) centerX - spawnX;
+                long dz = (long) centerZ - spawnZ;
+                long distanceSquared = dx * dx + dz * dz;
+                if (distanceSquared > maxDistanceSquared || distanceSquared >= bestDistanceSquared) continue;
+                CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, profile, centerX, centerZ);
+                if (stage == null || !CityStageConfig.VILLAGE.equals(stage.name())) continue;
+                best = new int[]{centerX, centerZ, radius};
+                bestDistanceSquared = distanceSquared;
             }
         }
-        return minimum;
+        return best;
     }
 
     private static int[][] eligibleNativeCities(IDimensionInfo provider, LostCityProfile profile,

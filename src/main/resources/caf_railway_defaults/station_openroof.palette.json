@@ -1,0 +1,52 @@
+{
+  "palette": [
+    {
+      "char": "\ue100",
+      "block": "minecraft:stone_bricks"
+    },
+    {
+      "char": "\ue101",
+      "block": "minecraft:quartz_block"
+    },
+    {
+      "char": "\ue102",
+      "block": "minecraft:polished_andesite"
+    },
+    {
+      "char": "\ue103",
+      "block": "minecraft:yellow_terracotta"
+    },
+    {
+      "char": "\ue104",
+      "block": "create:track[shape=xo,turn=false,waterlogged=false]"
+    },
+    {
+      "char": "\ue105",
+      "block": "minecraft:quartz_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]"
+    },
+    {
+      "char": "\ue106",
+      "block": "minecraft:quartz_stairs[facing=north,half=bottom,shape=straight,waterlogged=false]"
+    },
+    {
+      "char": "\ue107",
+      "block": "minecraft:glass"
+    },
+    {
+      "char": "\ue108",
+      "block": "minecraft:cobblestone_wall[east=none,north=none,south=none,up=true,waterlogged=false,west=none]"
+    },
+    {
+      "char": "\ue109",
+      "block": "minecraft:glowstone"
+    },
+    {
+      "char": "\ue10a",
+      "block": "minecraft:air"
+    },
+    {
+      "char": "\ue10b",
+      "block": "minecraft:gravel"
+    }
+  ]
+}

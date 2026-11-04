@@ -9,6 +9,7 @@ import mcjty.lostcities.worldgen.lost.BuildingInfo;
 import mcjty.lostcities.worldgen.lost.Transform;
 import mcjty.lostcities.worldgen.lost.cityassets.AssetRegistries;
 import mcjty.lostcities.worldgen.lost.cityassets.IBuildingPart;
+import net.minecraft.core.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
@@ -20,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LostCityTerrainFeature.class)
 public abstract class VacantSurfaceMixin {
     @Shadow @Final public IDimensionInfo provider;
-    @Shadow @Final public ChunkDriver driver;
+    @Shadow public abstract ChunkDriver getDriver();
     @Shadow public abstract int generatePart(BuildingInfo info,IBuildingPart part,Transform transform,
             int ox,int oy,int oz,LostCityTerrainFeature.HardAirSetting air);
     @Inject(method="generateStreet(Lmcjty/lostcities/worldgen/lost/BuildingInfo;Lmcjty/lostcities/worldgen/ChunkHeightmap;)V",
@@ -31,8 +32,15 @@ public abstract class VacantSurfaceMixin {
         // Lost Cities generated its own mixed-material street surface.
         if(!info.isCity||info.hasBuilding)return;
         if(!LayoutCatalog.current().active())return;
-        boolean authoredRoad=com.caf.lccustomcity.impl.RoadNbtRuntime.place(driver,info.coord,provider,info.profile,
+        boolean authoredRoad=com.caf.lccustomcity.impl.RoadNbtRuntime.place(getDriver(),info.coord,provider,info.profile,
                     info.getCityGroundLevel());
+        if(!authoredRoad) {
+            BlockPos spawn=provider.getWorld().getLevel().getSharedSpawnPos();
+            if(spawn!=null&&info.coord.chunkX()==Math.floorDiv(spawn.getX(),16)
+                    &&info.coord.chunkZ()==Math.floorDiv(spawn.getZ(),16))
+                authoredRoad=com.caf.lccustomcity.impl.RoadNbtRuntime.placeSpawnRoad(getDriver(),info.coord,
+                        provider,info.profile,info.getCityGroundLevel());
+        }
         // A complete authored road owns the whole plot.  Do not lay the default mixed
         // surface underneath it: explicit air in the preset clears natural blocks,
         // while structure_void marks locations that must remain untouched.
@@ -45,7 +53,7 @@ public abstract class VacantSurfaceMixin {
         if(!authoredRoad&&!BuildingInfo.hasHighway(info.coord,provider,info.profile)
                 && (!(info.profile.RAILWAYS_ENABLED||info.profile.RAILWAY_STATIONS_ENABLED)
                     ||!BuildingInfo.hasRailwayAtSurface(info.coord,provider,info.profile)))
-            com.caf.lccustomcity.impl.VacantVegetationPlacer.place(driver,info,provider.getSeed(),frontage);
+            com.caf.lccustomcity.impl.VacantVegetationPlacer.place(getDriver(),info,provider.getSeed(),frontage);
         ci.cancel();
     }
     @Inject(method="generateStreetDecorations(Lmcjty/lostcities/worldgen/lost/BuildingInfo;)V",

@@ -5,7 +5,11 @@ import java.util.*;
 /** Immutable conversion snapshot. No Minecraft references: installed before assets load. */
 public final class LayoutCatalog {
     public record Building(String id, String style, String zone, boolean outer, int width, int depth, int turns,
-                           String stage, String sourceFile) {
+                           String stage, String sourceFile, BuildingTypes.Profile profile) {
+        public Building(String id,String style,String zone,boolean outer,int width,int depth,int turns,
+                        String stage,String sourceFile) {
+            this(id,style,zone,outer,width,depth,turns,stage,sourceFile,BuildingTypes.UNKNOWN);
+        }
         public Building(String id, String style, String zone, boolean outer, int width, int depth, int turns,
                         String stage) {
             this(id, style, zone, outer, width, depth, turns, stage, null);
@@ -19,13 +23,14 @@ public final class LayoutCatalog {
         public Building {
             if (width < 1 || depth < 1) throw new IllegalArgumentException("Invalid footprint");
             turns=Math.floorMod(turns,4);
+            if (profile==null) profile=BuildingTypes.UNKNOWN;
         }
         public boolean multi() { return width > 1 || depth > 1; }
         public int area() { return width * depth; }
         public Building oriented(int rotation) {
             rotation=Math.floorMod(rotation,4);
             boolean swap=((rotation^turns)&1)!=0;
-            return new Building(id,style,zone,outer,swap?depth:width,swap?width:depth,rotation,stage,sourceFile);
+            return new Building(id,style,zone,outer,swap?depth:width,swap?width:depth,rotation,stage,sourceFile,profile);
         }
         public String assetId() {return turns==0||!multi()?id:id+"_r"+turns;}
     }

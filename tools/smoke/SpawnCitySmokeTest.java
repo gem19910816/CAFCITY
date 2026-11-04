@@ -412,6 +412,16 @@ public final class SpawnCitySmokeTest {
         check(smallDist <= 22.0, "the smallest target (16) still keeps the centre close (is " + smallDist + ")");
         check(bigDist <= (double) target, "the 850-block target is still honoured (is " + bigDist + ")");
 
+        int[] villageSpawn = (int[]) planGeometry.invoke(null, 20261020L, spawnX, spawnZ, 247, 100);
+        double villageCenterDistance = Math.sqrt(Math.pow((double) villageSpawn[0] - spawnX, 2.0)
+                + Math.pow((double) villageSpawn[1] - spawnZ, 2.0));
+        float villageFactorAtSpawn = (Float) factorAt.invoke(null, villageSpawn[0], villageSpawn[1],
+                villageSpawn[2], spawnX >> 4, spawnZ >> 4);
+        check(villageCenterDistance <= 100.0,
+                "a 100-block village spawn setting keeps the center within 100 blocks");
+        check(villageFactorAtSpawn > 0.2f,
+                "a village with radius 247 includes the spawn chunk for its forced road");
+
         System.out.println();
         System.out.println("================================");
         System.out.println("passed " + passed + ", failed " + failed);

@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LostCityTerrainFeature.class)
 public abstract class DynamicStructureMixin {
     @Shadow @Final public IDimensionInfo provider;
-    @Shadow @Final public ChunkDriver driver;
+    @Shadow public abstract ChunkDriver getDriver();
     @Unique private final ImportedBlockEntities caf$pendingMachines=new ImportedBlockEntities();
     @Unique private final java.util.List<caf$PendingUpper> caf$pendingUpper=new java.util.ArrayList<>();
     @Unique private record caf$PendingUpper(int x,int y,int z,BlockState state) {}
@@ -30,7 +30,7 @@ public abstract class DynamicStructureMixin {
         caf$flushUpper();
         // Our imported floors are already rotated by BuildingRotationMixin, including metadata.
         if(transform!=Transform.ROTATE_NONE)return;
-        DynamicStructurePlacer.place(provider.getWorld(),driver.getPrimer(),part,
+        DynamicStructurePlacer.place(provider.getWorld(),getDriver().getPrimer(),part,
                 info.coord.chunkX()*16+ox,oy,info.coord.chunkZ()*16+oz);
     }
     @Redirect(method="generatePart(Lmcjty/lostcities/worldgen/lost/BuildingInfo;Lmcjty/lostcities/worldgen/lost/cityassets/IBuildingPart;Lmcjty/lostcities/worldgen/lost/Transform;IIILmcjty/lostcities/worldgen/LostCityTerrainFeature$HardAirSetting;)I",
@@ -59,14 +59,14 @@ public abstract class DynamicStructureMixin {
     @Unique
     private void caf$flushUpper() {
         for (var pending : caf$pendingUpper) {
-            driver.setBlockRange(pending.x(), pending.y(), pending.z(), pending.y() + 1, pending.state());
+            getDriver().setBlockRange(pending.x(), pending.y(), pending.z(), pending.y() + 1, pending.state());
         }
         caf$pendingUpper.clear();
     }
     @Inject(method="handleBlockEntity(Lmcjty/lostcities/worldgen/lost/BuildingInfo;ILnet/minecraft/world/level/WorldGenLevel;IIILnet/minecraft/world/level/block/state/BlockState;Lmcjty/lostcities/worldgen/lost/cityassets/Palette$Info;)Lnet/minecraft/world/level/block/state/BlockState;",at=@At("HEAD"),cancellable=true,require=0)
     private void caf$createData(BuildingInfo info,int oy,WorldGenLevel world,int x,int z,int sy,
                                 BlockState state,Palette.Info paletteInfo,CallbackInfoReturnable<BlockState> cir) {
-        if(caf$pendingMachines.queue(driver.getPrimer(),info.getRelativePos(x,oy+sy,z),state,paletteInfo.tag()))
+        if(caf$pendingMachines.queue(getDriver().getPrimer(),info.getRelativePos(x,oy+sy,z),state,paletteInfo.tag()))
             cir.setReturnValue(state);
     }
     @Redirect(method={"generate(Lnet/minecraft/server/level/WorldGenRegion;Lnet/minecraft/world/level/chunk/ChunkAccess;)V",
@@ -77,5 +77,6 @@ public abstract class DynamicStructureMixin {
         target.actuallyGenerate(chunk);
         caf$pendingMachines.flush(chunk);
         ImportedBlockEntities.ROAD.flush(chunk);
+        ImportedBlockEntities.RAILWAY.flush(chunk);
     }
 }

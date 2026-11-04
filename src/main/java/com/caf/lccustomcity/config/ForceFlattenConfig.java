@@ -21,10 +21,11 @@ import java.util.List;
  * (以及周围 3x3 区块)会被强制踢出城市, 于是<b>不削平</b>,
  * 城里就出现长满树的小山。打开本开关后(默认), 结构回避被整体关掉,
  * 城市范围内一律按城市处理、一律削平；附属管理的城市还会先补实地基，
- * 并拦截之后才放置、占地与城市相交的原版地表结构。
+ * 并拦截之后才放置、占地与城市相交的已注册结构。
  *
  * <p>实现见 {@code com.caf.lccustomcity.mixin.StructureAvoidanceMixin}、
- * {@code CityFoundationMixin} 与 {@code VanillaSurfaceStructureMixin}。
+ * {@code CityFoundationMixin} 与 {@code VanillaSurfaceStructureMixin}。直接由自定义世界生成特性放方块、
+ * 没有注册为 Minecraft 结构的内容不经过 {@code StructureStart}，不受结构起点拦截。
  *
  * <h2>容错原则(和 {@link GapConfig} 一致)</h2>
  * <ul>
@@ -106,13 +107,12 @@ public final class ForceFlattenConfig {
     /** 写一份带 {@code _说明} 字段的模板(JSON 不支持注释, 说明只能塞在字段里)。 */
     private static void writeTemplate(Path configDir, List<String> warnings) {
         JsonObject root = new JsonObject();
-        root.addProperty("_说明", "城市范围内是否一律削平(关掉失落城市的结构回避，并补实地基、阻止原版地表结构悬空), 改完重启游戏生效。"
+        root.addProperty("_说明", "城市范围内是否一律削平(关掉失落城市的结构回避，并补实地基、阻止已注册结构与城市重叠), 改完重启游戏生效。"
                 + "本文件不存在时会自动重新生成这份模板; 删掉整个文件 = 用内置默认值(开)。");
         root.addProperty(KEY, DEFAULT);
         root.addProperty("_说明_" + KEY,
-                "true(默认)=村庄/丛林神庙等原版结构不再把城市区块踢出去, 城市范围内一律削平, "
-                        + "附属城市先填实地面以下的空气与水等空隙；相交的原版地表结构整座停止放置，防止削平后悬空；"
-                        + "地下结构仍按原版生成；"
+                "true(默认)=结构不再把城市区块踢出去, 城市范围内一律削平, "
+                        + "附属城市先填实地面以下的空气与水等空隙；完整占地与城市相交的已注册结构整座停止放置；"
                         + "false=恢复失落城市原生行为, 结构所在区块及周围一圈不削平、会长出原版小山。");
         try {
             Files.createDirectories(configDir);

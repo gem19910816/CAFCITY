@@ -20,7 +20,9 @@
     "CityCommandMixin",
     "SpawnCityMixin",
     "FillPlotsMixin",
-    "DynamicStructureMixin"
+    "DynamicStructureMixin",
+    "CreateRailwayMixin",
+    "CreateRailCountMixin"
   ],
   "injectors": {
     "defaultRequire": 1

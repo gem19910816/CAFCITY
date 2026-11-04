@@ -202,6 +202,56 @@ public final class CityCommandService {
         submit(source, () -> find(level, pos.x, pos.z, stageName, styleName, limit));
     }
 
+    /** Lists the globally quota-limited city centers for one configured stage. */
+    public static void reportLocate(CommandSourceStack source, String stageName) {
+        ServerLevel level = source.getLevel();
+        Vec3 pos = source.getPosition();
+        submit(source, () -> locateStage(level, pos.x, pos.z, stageName));
+    }
+
+    private static List<String> locateStage(ServerLevel level, double px, double pz, String stageName) {
+        try {
+            IDimensionInfo provider = providerOf(level);
+            if (provider == null) return List.of(CityLocator.PREFIX + "这个维度没有失落城市生成器");
+            if (!CityStageConfig.current().enabled()) {
+                return List.of(CityLocator.PREFIX + "阶段城市配置未启用");
+            }
+            LostCityProfile profile = provider.getProfile();
+            int x = (int) Math.floor(px), z = (int) Math.floor(pz);
+            List<CityLayout.Center> matches = CustomCityCenterPlanner.scanWorld(provider, profile).stream()
+                    .filter(center -> {
+                        CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, profile,
+                                center.x(), center.z());
+                        return stage != null && stage.name().equals(stageName);
+                    })
+                    .sorted(java.util.Comparator
+                            .comparingLong((CityLayout.Center center) -> squaredDistance(x, z, center.x(), center.z()))
+                            .thenComparingInt(CityLayout.Center::x)
+                            .thenComparingInt(CityLayout.Center::z))
+                    .toList();
+            if (matches.isEmpty()) {
+                return List.of(CityLocator.PREFIX + "全局城市计划中没有 " + stageName + " 城市");
+            }
+            List<String> lines = new ArrayList<>();
+            lines.add(CityLocator.PREFIX + "找到 " + matches.size() + " 座" + stageName + "城市（按离你从近到远排列）：");
+            for (int i = 0; i < matches.size(); i++) {
+                CityLayout.Center center = matches.get(i);
+                lines.add(CityLocator.PREFIX + stageName + " " + (i + 1) + "/" + matches.size()
+                        + "：城心 (" + center.x() + ", " + center.z() + ")，距当前位置 "
+                        + CityLocator.distance(x, z, center.x(), center.z()) + " 格");
+            }
+            return lines;
+        } catch (Throwable t) {
+            CAF_LOGGER.warn("[CAF-LC] 定位阶段城市失败(已忽略): {}", t.toString());
+            return List.of(CityLocator.PREFIX + "定位城市失败(详见日志)");
+        }
+    }
+
+    private static long squaredDistance(int x1, int z1, int x2, int z2) {
+        long dx = (long) x1 - x2, dz = (long) z1 - z2;
+        return dx * dx + dz * dz;
+    }
+
     private static List<String> find(ServerLevel level, double px, double pz,
                                      String stageName, String styleName, int limit) {
         try {

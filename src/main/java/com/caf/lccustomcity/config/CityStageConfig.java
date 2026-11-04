@@ -270,7 +270,7 @@ public final class CityStageConfig {
         addonOptions.addProperty("建筑自带的箱子内容优先", BlockEntityContentConfig.DEFAULT);
         addonOptions.addProperty("_说明_建筑自带的箱子内容优先", "true保留建筑文件中箱子的自带内容；false时战利品池优先。");
         addonOptions.addProperty("城市范围内一律削平", ForceFlattenConfig.DEFAULT);
-        addonOptions.addProperty("_说明_城市范围内一律削平", "关闭结构回避并补实城市地基，阻止与城市相交的原版地表结构生成。");
+        addonOptions.addProperty("_说明_城市范围内一律削平", "关闭 Lost Cities 的结构回避并补实城市地基；完整占地与城市相交的已注册结构整座停止放置。");
         addonOptions.addProperty("野外建筑距城市中心的额外距离", ScatteredMarginConfig.DEFAULT);
         addonOptions.addProperty("_说明_野外建筑距城市中心的额外距离", "单位为格；城市半径外再增加此距离才允许生成野外建筑，0关闭额外避让。");
         root.add(RootCityOptions.SECTION, addonOptions);

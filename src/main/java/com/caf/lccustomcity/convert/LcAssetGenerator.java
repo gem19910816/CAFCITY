@@ -460,7 +460,8 @@ public final class LcAssetGenerator {
                     // 只剪掉"生成的建筑包"整棵子树: 那是本模组自己的产物(自动生成的数据包),
                     // 不是玩家放的建筑; 走进去等于每次启动白遍历几千个文件。
                     if (!dir.equals(configDir) && dir.getFileName() != null
-                            && dir.getFileName().toString().equals(GENERATED_PACK_DIR_NAME)) {
+                            && (dir.getFileName().toString().equals(GENERATED_PACK_DIR_NAME)
+                            || dir.getFileName().toString().equals(RailwayAssetLoader.DIRECTORY))) {
                         res.prunedDirs.add(relPath(configDir, dir));
                         return FileVisitResult.SKIP_SUBTREE;
                     }
@@ -1035,7 +1036,10 @@ public final class LcAssetGenerator {
                 subZone == null ? "common" : "zone_" + shortHash(subZone));
         out.footprints.add(new com.caf.lccustomcity.config.LayoutCatalog.Building(
                 NS + ":" + id, stageCityStyle, subZone, outer, cellsX, cellsZ, 0,
-                stageAssets == null ? null : stageAssets.stage, file.getFileName().toString()));
+                stageAssets == null ? null : stageAssets.stage, file.getFileName().toString(),
+                stageAssets != null && ("小城".equals(stageAssets.stage) || "大城".equals(stageAssets.stage))
+                        ? com.caf.lccustomcity.config.BuildingTypes.forSource(file,fy)
+                        : com.caf.lccustomcity.config.BuildingTypes.UNKNOWN));
 
         // ---- 4.5 数量上下限登记(阶段 3 Mixin 用) ----
         // 键必须是 Mixin 运行时能拿到的两样东西: 城市风格名 + 建筑资产 id。

@@ -1,0 +1,76 @@
+{
+  "palette": [
+    {
+      "char": "\ue100",
+      "block": "minecraft:stone_bricks"
+    },
+    {
+      "char": "\ue101",
+      "block": "minecraft:quartz_block"
+    },
+    {
+      "char": "\ue102",
+      "block": "minecraft:polished_andesite"
+    },
+    {
+      "char": "\ue103",
+      "block": "minecraft:yellow_terracotta"
+    },
+    {
+      "char": "\ue104",
+      "block": "create:track[shape=xo,turn=false,waterlogged=false]"
+    },
+    {
+      "char": "\ue105",
+      "block": "minecraft:air"
+    },
+    {
+      "char": "\ue106",
+      "block": "minecraft:cyan_terracotta"
+    },
+    {
+      "char": "\ue107",
+      "block": "minecraft:glowstone"
+    },
+    {
+      "char": "\ue108",
+      "block": "doomsday_decoration:fluorescentlamp_1[facing=north]"
+    },
+    {
+      "char": "\ue109",
+      "block": "doomsday_decoration:subwayseats[facing=south]"
+    },
+    {
+      "char": "\ue10a",
+      "block": "doomsday_decoration:subwayseats[facing=north]"
+    },
+    {
+      "char": "\ue10b",
+      "block": "doomsday_decoration:wastepaper_1[facing=west]"
+    },
+    {
+      "char": "\ue10c",
+      "block": "doomsday_decoration:wastepaper_1[facing=east]"
+    },
+    {
+      "char": "\ue10d",
+      "block": "doomsday_decoration:electricbox[facing=north]"
+    },
+    {
+      "char": "\ue10e",
+      "block": "doomsday_decoration:crack[facing=north]"
+    },
+    {
+      "char": "\ue10f",
+      "block": "minecraft:mossy_stone_bricks"
+    },
+    {
+      "char": "\ue110",
+      "block": "doomsday_decoration:waterpipe_1[facing=north]"
+    },
+    {
+      "char": "\ue111",
+      "block": "minecraft:gravel"
+    }
+  ]
+}

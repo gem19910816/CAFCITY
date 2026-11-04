@@ -1,0 +1,36 @@
+{
+  "palette": [
+    {
+      "char": "\ue100",
+      "block": "minecraft:stone_bricks"
+    },
+    {
+      "char": "\ue101",
+      "block": "minecraft:cracked_stone_bricks"
+    },
+    {
+      "char": "\ue102",
+      "block": "minecraft:glowstone"
+    },
+    {
+      "char": "\ue103",
+      "block": "minecraft:air"
+    },
+    {
+      "char": "\ue104",
+      "block": "minecraft:wall_torch[facing=north]"
+    },
+    {
+      "char": "\ue105",
+      "block": "create:track[shape=zo,turn=false,waterlogged=false]"
+    },
+    {
+      "char": "\ue106",
+      "block": "minecraft:sea_lantern"
+    },
+    {
+      "char": "\ue107",
+      "block": "minecraft:gravel"
+    }
+  ]
+}

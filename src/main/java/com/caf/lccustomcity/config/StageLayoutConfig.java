@@ -50,7 +50,19 @@ public final class StageLayoutConfig {
                         boolean terrainCheckEnabled, int terrainCheckRadiusBlocks,
                         Range centerSpacing, Range buildingSpacing, int maxContinuousWidth,
                         int maxContinuousLength, int sameBuildingSpacing,
-                        Map<String, BuildingRule> buildings) {
+                        Map<String, BuildingRule> buildings,
+                        boolean uniqueFirstBuildingRound) {
+        public Rules(int radiusMinBlocks, int radiusMaxBlocks, Double centerChance,
+                     int candidateCenterCount, int candidateGridSize,
+                     boolean terrainCheckEnabled, int terrainCheckRadiusBlocks,
+                     Range centerSpacing, Range buildingSpacing, int maxContinuousWidth,
+                     int maxContinuousLength, int sameBuildingSpacing,
+                     Map<String, BuildingRule> buildings) {
+            this(radiusMinBlocks, radiusMaxBlocks, centerChance, candidateCenterCount,
+                    candidateGridSize, terrainCheckEnabled, terrainCheckRadiusBlocks,
+                    centerSpacing, buildingSpacing, maxContinuousWidth, maxContinuousLength,
+                    sameBuildingSpacing, buildings, false);
+        }
         public Rules {
             radiusMinBlocks = Math.max(16, radiusMinBlocks);
             radiusMaxBlocks = Math.max(radiusMinBlocks, radiusMaxBlocks);
@@ -81,7 +93,7 @@ public final class StageLayoutConfig {
 
     public static Rules defaults(int radiusMin, int radiusMax) {
         return new Rules(radiusMin, radiusMax, null, 10, 1024, true, 50, new Range(null, null),
-                new Range(null, null), 2, 6, 10, Map.of());
+                new Range(null, null), 2, 6, 10, Map.of(), false);
     }
 
     /** Reads the extra layout section; missing or invalid files use safe defaults. */
@@ -136,18 +148,20 @@ public final class StageLayoutConfig {
             int maxWidth = defaults.maxContinuousWidth();
             int maxLength = defaults.maxContinuousLength();
             int sameSpacing = defaults.sameBuildingSpacing();
+            boolean uniqueFirstRound = defaults.uniqueFirstBuildingRound();
             if (layout != null) {
                 Range configuredSpacing = rangeObject(layout.get("建筑间隔"));
                 if (configuredSpacing != null) buildingSpacing = configuredSpacing;
                 maxWidth = Math.max(1, integer(layout, "连续生成最大宽度", maxWidth));
                 maxLength = Math.max(1, integer(layout, "连续生成最大长度", maxLength));
                 sameSpacing = Math.max(0, integer(layout, "相同建筑间隔", sameSpacing));
+                uniqueFirstRound = bool(layout, "首轮建筑不重复", uniqueFirstRound);
             }
             Map<String, BuildingRule> buildings = parseBuildings(object(root, "建筑"), warnings);
             return new Rules(radiusMin, radiusMax, centerChance,
                     candidateCount, candidateGridSize, terrainCheckEnabled, terrainCheckRadius,
                     centerSpacing, buildingSpacing,
-                    maxWidth, maxLength, sameSpacing, buildings);
+                    maxWidth, maxLength, sameSpacing, buildings, uniqueFirstRound);
         } catch (Exception e) {
             warnings.add(FILE_NAME + " 布局部分读取失败，使用默认值: " + e.getMessage());
             return defaults;

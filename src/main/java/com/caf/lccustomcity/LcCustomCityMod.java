@@ -136,6 +136,8 @@ public class LcCustomCityMod {
 
     public LcCustomCityMod(IEventBus modEventBus, ModContainer modContainer) {
         try {
+            CharacterSpawnIntegration.register();
+            CreateRailwayEvents.register();
             startup(modEventBus, FMLPaths.GAMEDIR.get());
 
             // 强制覆盖所有配置档的 废墟/爆炸/高度 设置。
@@ -288,7 +290,12 @@ public class LcCustomCityMod {
         LOGGER.info("[CAF-LC] 空地也要放建筑: {}", fillEmptyPlots
                 ? "开(单格地皮不被建筑几率掷骰挡掉, 强制放建筑)" : "关(保留失落城市原生的随机空地)");
 
-        if (out.isEmpty()) {
+        // Railway resources share the existing generated-pack pipeline; validation is atomic.
+        List<String> railwayWarnings = new ArrayList<>();
+        com.caf.lccustomcity.convert.RailwayAssetLoader.load(configDir, findLostCitiesJar(gameDir), out.files, railwayWarnings);
+        railwayWarnings.forEach(w -> LOGGER.warn("[CAF-LC] {}", w));
+
+        if (out.isEmpty() && !com.caf.lccustomcity.convert.RailwayAssetLoader.active()) {
             LOGGER.info("[CAF-LC] {} 里没有建筑文件, 不做任何改动(城市仍生成原版建筑)。"
                     + "把 .schem / .nbt 建筑文件放进去后重启游戏即可。", configDir);
             return;

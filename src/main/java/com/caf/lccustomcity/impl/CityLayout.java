@@ -67,7 +67,8 @@ public final class CityLayout {
         Center best=null; double bestDistance=1;
         int[] synthetic=SpawnCityRule.centerFor(p,profile);
         if(synthetic!=null && (!CityStageConfig.current().enabled()
-                || CityStageRuntime.acceptedStage(p, profile, synthetic[0], synthetic[1]) != null)){
+                || CityStageRuntime.acceptedStage(p, profile, synthetic[0], synthetic[1]) != null
+                && CustomCityCenterPlanner.worldCenterAllowed(p, profile, synthetic[0], synthetic[1]))){
             CityStageConfig.Stage stage = CityStageConfig.current().enabled()
                     ? CityStageRuntime.acceptedStage(p, profile, synthetic[0], synthetic[1]) : null;
             String style = stage == null ? null : CityStageRuntime.selectedStyle(p, stage, synthetic[0], synthetic[1]);
@@ -353,6 +354,12 @@ public final class CityLayout {
         }
         CityStageRuntime.Geometry stageGeometry = stage == null ? null
                 : CityStageRuntime.geometry(stage, selectedStyle);
+        var worldSpawn = p.getWorld().getLevel().getSharedSpawnPos();
+        boolean forceVillageSpawnRoad = stage != null
+                && CityStageConfig.VILLAGE.equals(stage.name())
+                && worldSpawn != null;
+        int spawnChunkX = worldSpawn == null ? Integer.MIN_VALUE : Math.floorDiv(worldSpawn.getX(), 16);
+        int spawnChunkZ = worldSpawn == null ? Integer.MIN_VALUE : Math.floorDiv(worldSpawn.getZ(), 16);
         Cell[][] cells=CityPlotPlan.create(sx,sz,RadialZonePlan.citySeed(p.getSeed(),ox,oz),catalog,
                 (x,z)->{
                     ChunkCoord c=new ChunkCoord(coord.dimension(),ox+x,oz+z);
@@ -380,7 +387,9 @@ public final class CityLayout {
                         var owner=owners[x+gap+dx][z+gap+dz];
                         if(occupied[x+gap+dx][z+gap+dz]||owner!=null&&!owner.equals(key.center()))return false;
                     }
-                    return !predefined(c,p) && !BuildingInfo.hasHighway(c,p,profile)
+                    boolean spawnRoad = forceVillageSpawnRoad
+                            && c.chunkX() == spawnChunkX && c.chunkZ() == spawnChunkZ;
+                    return !spawnRoad && !predefined(c,p) && !BuildingInfo.hasHighway(c,p,profile)
                             // Deep transit tracks do not occupy a surface building plot.
                             // Keep stations (including underground access) and surface tracks clear.
                             && (!(profile.RAILWAYS_ENABLED || profile.RAILWAY_STATIONS_ENABLED) || !BuildingInfo.hasRailwayAtSurface(c,p,profile));

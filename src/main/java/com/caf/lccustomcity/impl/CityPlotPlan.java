@@ -5,6 +5,7 @@ import com.caf.lccustomcity.config.LayoutCatalog;
 import com.caf.lccustomcity.config.LayoutCatalog.Building;
 import com.caf.lccustomcity.config.StageLayoutConfig;
 import com.caf.lccustomcity.config.StagePartitionConfig;
+import com.caf.lccustomcity.config.BuildingTypes;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -70,8 +71,11 @@ public final class CityPlotPlan {
         final CityLayout.Cell[][] cells;
         final boolean[][] free;
         final boolean[][] roads;
+        final boolean typeAware;
         final Map<String,Integer> counts=new HashMap<>();
         final Map<String,List<UniquePlotPacking.Placement>> occurrences=new HashMap<>();
+        final Map<String,GapRange> gapRanges=new HashMap<>();
+        int gapSearchRadius=-1;
         OuterBuildingGroups outerGroups;
         StageLayoutConfig.Rules layoutRules;
         Map<String, StagePartitionConfig.Partition> partitionRules = Map.of();
@@ -80,6 +84,8 @@ public final class CityPlotPlan {
                 BiFunction<Integer,Integer,CityLayout.District> districtAt,
                 BiPredicate<Integer,Integer> available,UniquePlotPacking.Allowed allowed,int attempt) {
             this.width=width;this.depth=depth;this.seed=seed;this.catalog=catalog;this.allowed=allowed;this.attempt=attempt;
+            typeAware=catalog.buildings().stream().anyMatch(b -> b.profile().known()
+                    && ("小城".equals(b.stage()) || "大城".equals(b.stage())));
             districts=new CityLayout.District[width][depth];cells=new CityLayout.Cell[width][depth];
             free=new boolean[width][depth];roads=new boolean[width][depth];
             for(int x=0;x<width;x++)for(int z=0;z<depth;z++){
@@ -126,6 +132,9 @@ public final class CityPlotPlan {
         }
         record GapRange(int min, int max) {}
         GapRange buildingGapRange(Building b) {
+            return gapRanges.computeIfAbsent(b.id(), ignored -> uncachedBuildingGapRange(b));
+        }
+        GapRange uncachedBuildingGapRange(Building b) {
             StagePartitionConfig.Partition partition = partitionRule(b);
             if (partition != null && partition.buildingSpacing() != null) {
                 int min = partition.buildingSpacing().min();
@@ -153,6 +162,21 @@ public final class CityPlotPlan {
                     ^ ((long) Math.min(ax, bx) << 48) ^ ((long) Math.min(az, bz) << 16)
                     ^ ((long) Math.max(ax, bx) << 32) ^ Math.max(az, bz);
             return min + (int) Math.floorMod(RadialZonePlan.mix(pairSeed), (long) max - min + 1);
+        }
+        Set<UniquePlotPacking.Placement> gapNeighbours(Building building,int x,int z) {
+            if(gapSearchRadius<0) {
+                gapSearchRadius=0;
+                for(var source:catalog.buildings())gapSearchRadius=Math.max(gapSearchRadius,buildingGapRange(source).max());
+            }
+            var result=new HashSet<UniquePlotPacking.Placement>();
+            int radius=Math.min(Math.max(width,depth),gapSearchRadius);
+            if(radius==0)return result; // Overlap is already rejected by the footprint check.
+            for(int xx=Math.max(0,x-radius);xx<Math.min(width,x+building.width()+radius);xx++)
+                for(int zz=Math.max(0,z-radius);zz<Math.min(depth,z+building.depth()+radius);zz++) {
+                    var previous=cells[xx][zz].placement();
+                    if(previous!=null)result.add(previous);
+                }
+            return result;
         }
         boolean refreshAllowed(Building b, int x, int z) {
             var custom = customRule(b);
@@ -189,6 +213,13 @@ public final class CityPlotPlan {
             candidates.removeIf(b -> !fillEmptyPlots(b));
             candidates.sort(Comparator.comparingLong((Building b)->RadialZonePlan.mix(seed^b.id().hashCode()))
                     .thenComparing(Building::id));
+            if (mixedTypes()) placeLargeOpportunities(candidates);
+            if (layoutRules != null && layoutRules.uniqueFirstBuildingRound()) {
+                fillVacanciesPass(candidates, true);
+            }
+            fillVacanciesPass(candidates, false);
+        }
+        void fillVacanciesPass(List<Building> candidates, boolean unusedOnly) {
             boolean rowsAlongX = (RadialZonePlan.mix(seed) & 1L) == 0;
             int majorSize = rowsAlongX ? depth : width;
             int minorSize = rowsAlongX ? width : depth;
@@ -196,15 +227,83 @@ public final class CityPlotPlan {
                 int x = rowsAlongX ? minor : major;
                 int z = rowsAlongX ? major : minor;
                 if(!free[x][z])continue;
-                for(Building b:candidates){
+                List<Building> passCandidates = unusedOnly
+                        ? candidates.stream().filter(b -> counts.getOrDefault(b.id(), 0) == 0).toList()
+                        : candidates;
+                if (passCandidates.size() > 1) {
+                    long cellSeed = RadialZonePlan.mix(seed ^ ((long) x << 32) ^ (z & 0xffffffffL));
+                    passCandidates = new ArrayList<>(passCandidates);
+                    passCandidates.sort(Comparator.comparingLong(
+                                    (Building b) -> RadialZonePlan.mix(cellSeed ^ b.id().hashCode()))
+                            .thenComparing(Building::id));
+                    if (mixedTypes()) {
+                        var nearby=nearby(x,z);
+                        var scores=new HashMap<String,Integer>();
+                        for(var b:passCandidates)scores.put(b.id(),preference(b,nearby,cellSeed));
+                        passCandidates.sort(Comparator.comparingInt((Building b)->scores.get(b.id())).reversed());
+                    }
+                }
+                for(Building b:passCandidates){
                     if (!refreshAllowed(b, x, z)) continue;
                     boolean placed=false;
                     for(Building oriented:shapes(b,x,z)){
                         if(fits(oriented,x,z)){place(oriented,x,z);placed=true;break;}
-                        if(continuous(oriented)&&placeCompletedRow(oriented,x,z,candidates)){placed=true;break;}
+                        if(continuous(oriented)&&placeCompletedRow(oriented,x,z,passCandidates)){placed=true;break;}
                     }
                     if(placed)break;
                 }
+            }
+        }
+        boolean mixedTypes() {
+            return typeAware;
+        }
+        List<UniquePlotPacking.Placement> nearby(int x,int z) {
+            var found=new HashSet<UniquePlotPacking.Placement>();
+            for(int xx=Math.max(0,x-6);xx<Math.min(width,x+7);xx+=2)
+                for(int zz=Math.max(0,z-6);zz<Math.min(depth,z+7);zz+=2) {
+                    var placed=cells[xx][zz].placement();
+                    if(placed!=null)found.add(placed);
+                }
+            return found.stream().sorted(Comparator.comparingInt(UniquePlotPacking.Placement::x)
+                    .thenComparingInt(UniquePlotPacking.Placement::z)).toList();
+        }
+        int preference(Building b,List<UniquePlotPacking.Placement> nearby,long cellSeed) {
+            int random=(int)Math.floorMod(RadialZonePlan.mix(cellSeed^b.id().hashCode()),32L);
+            if(!b.profile().known() || nearby.isEmpty())return random;
+            int sum=0,n=0;
+            for(var placed:nearby) {
+                var a=placed.building().profile();if(!a.known())continue;
+                int score=0;
+                int delta=Math.abs(a.heightBlocks()-b.profile().heightBlocks());
+                score+=delta<24?12:delta<56?5:-5;
+                if((a.uses()&b.profile().uses())!=0)score+=5;
+                int pair=a.uses()|b.profile().uses();
+                if((pair&BuildingTypes.HOME)!=0 && (pair&(BuildingTypes.SHOP|BuildingTypes.SERVICE|BuildingTypes.CULTURE))!=0)score+=9;
+                if((pair&BuildingTypes.OFFICE)!=0 && (pair&BuildingTypes.SHOP)!=0)score+=7;
+                if((a.uses()&BuildingTypes.INDUSTRY)!=0 && (b.profile().uses()&BuildingTypes.INDUSTRY)!=0)score+=12;
+                if(!a.visualGroup().isEmpty() && a.visualGroup().equals(b.profile().visualGroup()))score-=20;
+                sum+=score;n++;
+            }
+            return random+(n==0?0:sum/n);
+        }
+        /** Give complete large footprints a placement opportunity before small plots fragment the land. */
+        void placeLargeOpportunities(List<Building> candidates) {
+            var large=candidates.stream().filter(b->b.profile().known() && b.area()>=16
+                    && counts.getOrDefault(b.id(),0)==0).sorted(Comparator.comparingInt(Building::area).reversed()
+                    .thenComparingLong(b->RadialZonePlan.mix(seed^b.id().hashCode()))).toList();
+            for(var b:large) {
+                int bestX=-1,bestZ=-1;long best=Long.MIN_VALUE;Building shape=null;
+                long placementSeed=RadialZonePlan.mix(seed^b.id().hashCode());
+                int targetX=(int)Math.floorMod(placementSeed,width),targetZ=(int)Math.floorMod(placementSeed>>>24,depth);
+                for(int x=0;x<width;x++)for(int z=0;z<depth;z++) {
+                    if(!free[x][z] || !refreshAllowed(b,x,z))continue;
+                    for(var oriented:shapes(b,x,z)) {
+                        long score=-((long)(x-targetX)*(x-targetX)+(long)(z-targetZ)*(z-targetZ));
+                        if(score<=best || !fits(oriented,x,z))continue;
+                        best=score;bestX=x;bestZ=z;shape=oriented;
+                    }
+                }
+                if(shape!=null)place(shape,bestX,bestZ);
             }
         }
         boolean fillEmptyPlots(Building building) {
@@ -318,7 +417,11 @@ public final class CityPlotPlan {
         }
         boolean fitsFootprint(Building b,int x,int z) {
             if(x<0||z<0||!eligible(b)||x+b.width()>width||z+b.depth()>depth||!allowed.at(b,x,z))return false;
-            if (!partitionRunFits(b, x, z)) return false;
+            // Reject overlap and wrong districts before exploring connected groups.
+            // These checks have no side effects and preserve the acceptance rules.
+            for(int i=x;i<x+b.width();i++)for(int j=z;j<z+b.depth();j++)
+                if(!free[i][j] || (!districts[i][j].unrestricted()
+                        && !b.style().equals(districts[i][j].style()))) return false;
             // Check complete footprints, not anchors or individual multi-building cells.
             // Other sources can still use the land between these occurrences.
             List<UniquePlotPacking.Placement> previousPlacements = occurrences.getOrDefault(b.id(), List.of());
@@ -336,21 +439,19 @@ public final class CityPlotPlan {
             // occurrence. It prevents a configured building from becoming an
             // isolated outlier while leaving the first occurrence unconstrained.
             if (maximumGap != null && !previousPlacements.isEmpty() && nearestGap > maximumGap) return false;
-            for(int i=x;i<x+b.width();i++)for(int j=z;j<z+b.depth();j++)
-                if(!free[i][j] || (!districts[i][j].unrestricted()
-                        && !b.style().equals(districts[i][j].style()))) return false;
-            for (List<UniquePlotPacking.Placement> placements : occurrences.values()) {
-                for (UniquePlotPacking.Placement previous : placements) {
+                for (UniquePlotPacking.Placement previous : gapNeighbours(b,x,z)) {
                     int dx = Math.max(x - previous.x() - previous.building().width(),
                             previous.x() - x - b.width());
                     int dz = Math.max(z - previous.z() - previous.building().depth(),
                             previous.z() - z - b.depth());
+                    GapRange a=buildingGapRange(b), other=buildingGapRange(previous.building());
+                    int upper=Math.max(Math.max(a.min(),other.min()),Math.min(a.max(),other.max()));
+                    if(Math.max(dx,dz)>=upper)continue;
                     int sharedGap = sharedBuildingGap(b, previous.building(), x, z,
                             previous.x(), previous.z());
                     if (Math.max(dx, dz) < sharedGap) return false;
-                }
             }
-            return true;
+            return partitionRunFits(b,x,z);
         }
         StagePartitionConfig.Partition partitionRule(Building building) {
             return building.zone() == null ? null : partitionRules.get(building.zone());
@@ -383,13 +484,9 @@ public final class CityPlotPlan {
             var xCuts = new TreeSet<Integer>();
             var zCuts = new TreeSet<Integer>();
             xCuts.add(minX); xCuts.add(maxX); zCuts.add(minZ); zCuts.add(maxZ);
-            for (List<UniquePlotPacking.Placement> values : occurrences.values()) {
-                for (UniquePlotPacking.Placement placed : values) {
-                    if (included.contains(placed)) {
-                        xCuts.add(placed.x()); xCuts.add(placed.x() + placed.building().width());
-                        zCuts.add(placed.z()); zCuts.add(placed.z() + placed.building().depth());
-                    }
-                }
+            for (UniquePlotPacking.Placement placed : included) {
+                xCuts.add(placed.x()); xCuts.add(placed.x() + placed.building().width());
+                zCuts.add(placed.z()); zCuts.add(placed.z() + placed.building().depth());
             }
             xCuts.add(x); xCuts.add(x + building.width());
             zCuts.add(z); zCuts.add(z + building.depth());

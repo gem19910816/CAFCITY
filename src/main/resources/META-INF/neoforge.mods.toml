@@ -42,3 +42,10 @@ type="required"
 versionRange="[0,)"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.caf_lc_customcity]]
+modId="create"
+type="optional"
+versionRange="[6.0.10,6.1)"
+ordering="AFTER"
+side="BOTH"

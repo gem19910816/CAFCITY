@@ -133,6 +133,26 @@ public abstract class CityCommandMixin {
                 CityCommandService.reportAll(ctx.getSource());
                 return 1;
             }));
+
+            // /cafcity locate <village|town|smallcity|bigcity>
+            LiteralArgumentBuilder<CommandSourceStack> locate = Commands.literal("locate");
+            locate.then(Commands.literal("village").executes(ctx -> {
+                CityCommandService.reportLocate(ctx.getSource(), "乡村");
+                return 1;
+            }));
+            locate.then(Commands.literal("town").executes(ctx -> {
+                CityCommandService.reportLocate(ctx.getSource(), "小镇");
+                return 1;
+            }));
+            locate.then(Commands.literal("smallcity").executes(ctx -> {
+                CityCommandService.reportLocate(ctx.getSource(), "小城");
+                return 1;
+            }));
+            locate.then(Commands.literal("bigcity").executes(ctx -> {
+                CityCommandService.reportLocate(ctx.getSource(), "大城");
+                return 1;
+            }));
+            node.then(locate);
             dispatcher.register(node);
             CAF_LOGGER.info("[CAF-LC] 已注册命令 /{} [距离上限] (报告最近的城市)", COMMAND_NAME);
         } catch (Throwable t) {
