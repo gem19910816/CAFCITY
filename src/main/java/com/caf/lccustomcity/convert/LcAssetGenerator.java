@@ -46,8 +46,8 @@ import java.util.Map;
  * <h2>为什么按 16x16 切格</h2>
  * 失落城市的一个格子就是一个区块, part 的尺寸必须正好 16x16 (少数桥梁零件例外)。
  * 超过 16x16 的建筑要用"多格建筑"(multibuilding), 它的 {@code dimx}/{@code dimz}
- * 上限是 16 (本模组把 worldstyle 的 areasize 覆盖为 16, 见 CityStylePatcher),
- * 所以最大支持 <b>256x256</b>。
+ * 本模组的导入上限为 32 格，并同步覆盖 worldstyle 的 areasize (见 CityStylePatcher)，
+ * 所以最大支持 <b>512x512</b>，每个 part 仍然是 16x16。
  *
  * <h2>多格建筑的硬性约束</h2>
  * {@code BuildingInfo} 里写着: 多格建筑中<b>非左上角</b>的格子会直接复制左上角格子的
@@ -64,11 +64,11 @@ public final class LcAssetGenerator {
     private static final int CELL = 16;
     // 多格建筑 dimx/dimz 上限(格)。必须和 CityStylePatcher 写进 worldstyle 的
     // areasize 保持一致 —— 失落城市 MultiChunk 里 rand.nextInt(areasize - dimX + 1),
-    // 建筑超过 areasize 会直接崩。16 格 = 256x256 方块。
+    // 建筑超过 areasize 会直接崩。32 格 = 512x512 方块。
     // 包级可见: CityStylePatcher 覆盖 worldstyle 时直接引用, 保证两边永远一致。
     // public: 启动自检日志和说明文字都要引用它(见 LcCustomCityMod.README_TEXT),
     // 免得文档里又写一个和代码不一致的数字(曾经 README 写 160x160, 代码其实是 256x256)。
-    public static final int MAX_CELLS = 16;
+    public static final int MAX_CELLS = 32;
     private static final int FLOOR_HEIGHT = 6;
 
     /** 所有建筑共用的一张"全空气"part, 用于万一某个 profile 强制生成地下室时填空气。 */

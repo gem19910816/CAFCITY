@@ -161,8 +161,8 @@ public final class BlockEntityNbt {
         List<String> keys = new ArrayList<>(m.keySet());
         Collections.sort(keys);
         for (String k : keys) {
-            if (STRIP.contains(k)) {
-                continue;       // 坐标/id 不参与"内容"的比较
+            if (depth == 0 && STRIP.contains(k)) {
+                continue;       // 仅方块实体根坐标/id可忽略；嵌套物品id与坐标是实际内容。
             }
             sb.append(k.length()).append(':').append(k).append('=');
             appendValue(m.get(k), sb, depth);
