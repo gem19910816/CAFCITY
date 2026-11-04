@@ -248,8 +248,8 @@ public class RailwayModel {
             case STATION_EXTENSION_UNDERGROUND: {
                 return new RailChunkInfo(RailChunkType.HORIZONTAL, direction, adjacent.getLevel(), adjacent.getRails());
             }
-            case GOING_DOWN_FURTHER: 
-            case GOING_DOWN_ONE_FROM_SURFACE: 
+            case GOING_DOWN_FURTHER:
+            case GOING_DOWN_ONE_FROM_SURFACE:
             case GOING_DOWN_TWO_FROM_SURFACE: {
                 if (adjacent.getLevel() == railwayLevel) {
                     return new RailChunkInfo(RailChunkType.HORIZONTAL, direction, adjacent.getLevel(), adjacent.getRails());
