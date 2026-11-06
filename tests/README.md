@@ -32,3 +32,8 @@
 `RailwayModel` 是针对 Lost Cities `1.21-8.4.6` 的测试适配模型，固定 cityLevel=0、单城圆形范围；它没有执行 LC 世界生成，也不模拟高速路强制站点下潜、预定义建筑或邻城归属竞争。模型版本或铁路算法变化时应同步复核。
 
 这些检查证明离线规划和参数转换行为，不证明实际 Mixin 已在游戏中成功注入，不验收渲染、地下站出入口方块或完整地形生成，也不会补回已生成区块。`summary.json` 明确记录这些边界；ASM 目标存在检查不能替代运行期 Mixin 验收。
+
+
+## 道路容器类型回归（1.0.212）
+
+`ImportedBlockEntityNbtProbe.java` 的包为 `com.caf.lccustomcity.impl`。将其用当前成品/`build/classes` 和本机 Minecraft 依赖编译后，运行 `com.caf.lccustomcity.impl.ImportedBlockEntityNbtProbe`。9项检查使用真实 NBT 类，核缺类型与空类型补齐、已有类型保留、世界坐标、战利品表和种子、库存、深拷贝及无法取得类型时拒绝写入。它不启动游戏，也不证明实际道路区块生成已验收。

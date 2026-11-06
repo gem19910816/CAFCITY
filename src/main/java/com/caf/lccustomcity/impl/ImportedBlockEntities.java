@@ -14,12 +14,12 @@ public final class ImportedBlockEntities {
     public static final ImportedBlockEntities ROAD = new ImportedBlockEntities();
     public static final ImportedBlockEntities RAILWAY = new ImportedBlockEntities();
     private final Map<ChunkAccess,Map<BlockPos,Entry>> pending=new WeakHashMap<>();
-    public boolean queue(ChunkAccess chunk,BlockPos pos,BlockState state,CompoundTag carrier) {
+    public synchronized boolean queue(ChunkAccess chunk,BlockPos pos,BlockState state,CompoundTag carrier) {
         if(carrier==null||!carrier.contains(DynamicNbt.BE_KEY))return false;
         try {
             if(!chunk.getPos().equals(new net.minecraft.world.level.ChunkPos(pos)))
                 throw new IllegalArgumentException("machine outside generating chunk: "+pos);
-            var tag=DynamicStructurePlacer.restoreBlockEntity(carrier,pos);
+            var tag=ImportedBlockEntityNbt.prepare(DynamicStructurePlacer.restoreBlockEntity(carrier,pos),pos,state);
             pending.computeIfAbsent(chunk,c->new LinkedHashMap<>()).put(pos.immutable(),new Entry(state,tag));
             return true;
         } catch(Exception e) {
@@ -33,7 +33,7 @@ public final class ImportedBlockEntities {
         if(!chunk.getPos().equals(new net.minecraft.world.level.ChunkPos(pos)))
             throw new IllegalArgumentException("block entity outside generating chunk: "+pos);
         pending.computeIfAbsent(chunk,c->new LinkedHashMap<>()).put(pos.immutable(),
-                new Entry(state,tag.copy()));
+                new Entry(state,ImportedBlockEntityNbt.prepare(tag,pos,state)));
     }
     public synchronized void flush(ChunkAccess chunk) {
         var entries=pending.remove(chunk);if(entries==null)return;
