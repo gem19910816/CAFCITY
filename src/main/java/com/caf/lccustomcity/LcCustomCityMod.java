@@ -136,6 +136,7 @@ public class LcCustomCityMod {
 
     public LcCustomCityMod(IEventBus modEventBus, ModContainer modContainer) {
         try {
+            CityNavigationItems.register(modEventBus);
             CharacterSpawnIntegration.register();
             CreateRailwayEvents.register();
             startup(modEventBus, FMLPaths.GAMEDIR.get());

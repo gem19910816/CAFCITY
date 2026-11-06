@@ -244,7 +244,12 @@ $fullCp = @($cp, $mixinJar, $lcJar, $realCp, $createCp, $neoCompile) -join ';'
 Write-Host "Compiling $($all.Count) java file(s) with the full game classpath..." -ForegroundColor Cyan
 # Compile together because asset generation, command handlers and runtime code
 # share types across packages; separate passes break those valid references.
-& $javac -encoding UTF-8 -nowarn -proc:none -d $classes -cp $fullCp $all
+# javac argument files avoid Windows' command-line length limit in deep paths.
+$javacArgsFile = Join-Path $root 'build/javac.args'
+$javacArgs = @('-encoding', 'UTF-8', '-nowarn', '-proc:none', '-d', $classes, '-cp', $fullCp) + @($all)
+$argLines = $javacArgs | ForEach-Object { '"' + ([string]$_).Replace('\', '/').Replace('"', '\"') + '"' }
+[System.IO.File]::WriteAllLines($javacArgsFile, $argLines, [System.Text.UTF8Encoding]::new($false))
+& $javac ('@' + $javacArgsFile)
 if ($LASTEXITCODE -ne 0) { Fail "javac reported errors (see above)." }
 
 # ---- resources ----

@@ -462,7 +462,7 @@ public final class CityCommandService {
      * {@code Registration.LOSTCITY_FEATURE.get().getDimensionInfo(level)}, 只是把
      * "编译期拿不到的 DeferredHolder" 换成反射调用。
      */
-    private static IDimensionInfo providerOf(ServerLevel level) {
+    static IDimensionInfo providerOf(ServerLevel level) {
         try {
             Class<?> registration = Class.forName(CLS_REGISTRATION);
             Object holder = registration.getField(FIELD_FEATURE).get(null);
