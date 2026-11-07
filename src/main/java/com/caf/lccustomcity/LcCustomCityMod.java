@@ -1100,8 +1100,14 @@ public class LcCustomCityMod {
             { "BUILDING_MAXCELLARS",       3    },
             { "PARK_CHANCE",               0f   },  // 0 = 不再把非建筑区块变成"公园"(玩家要求删掉草地空地)
             { "CORRIDOR_CHANCE",           0.7f },
-            { "BRIDGE_CHANCE",             0.7f },
+            { "BRIDGE_CHANCE",             0.0f },
             { "FOUNTAIN_CHANCE",           0.05f },
+            { "HIGHWAY_DISTANCE_MASK",      0 },
+            { "PLANNED_PRIMARY_BRIDGE_CHANCE", 0.0f },
+            { "RAILWAYS_ENABLED",           false },
+            { "RAILWAY_STATIONS_ENABLED",   false },
+            { "RAILWAY_SURFACE_STATIONS_ENABLED", false },
+            { "RAILWAY_DUNGEON_CHANCE",      0.0f },
     };
 
     /** 内置默认值(字段名 -> 值), 是 {@link CityGenConfig} 缺失/出错时的回退来源。 */

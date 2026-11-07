@@ -1,8 +1,15 @@
 {
-  "version": "1.0.216",
-  "sha256": "e4d41d8fc0fdae15b13fc451cef2bb7a2a5d18dd8ad7d6131752e8543e9840b3",
-  "source_sha256": "7cd81364f4022fc1da5ae64c46bc356bdee9de7a3bf81ea761996fd18e87e88f",
-  "java_sources": 116,
-  "architecture": "Location provider only; radio state/service/stories in CAF core, UI in MCphone",
-  "runtime_tested": false
+  "version": "1.0.217",
+  "sha256": "2a7f26cff3156f749e0ca3fb83906d46238bf85eb84b6682bb062ad9240382ed",
+  "source_sha256": "af1873d936257d442e427700ffbb688fed3996e9858c0ef4f934adcef3d53f92",
+  "java_sources": 118,
+  "architecture": "Location provider only; radio service remains in CAF core, UI in MCphone",
+  "change": "Disable automatic LC highways/bridges and railway/station networks; preserve 216 city layout and nearby starter town",
+  "runtime_tested": false,
+  "offline_checks": {
+    "transport": 39,
+    "starter_town": 1823,
+    "terrain_fixture_seeds": 32
+  },
+  "mixin_transform_tested": false
 }

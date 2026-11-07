@@ -23,7 +23,9 @@
     "DynamicStructureMixin",
     "CreateRailwayMixin",
     "CreateRailCountMixin",
-    "UndergroundStationAccessMixin"
+    "UndergroundStationAccessMixin",
+    "HighwayDisableMixin",
+    "RailwayDisableMixin"
   ],
   "injectors": {
     "defaultRequire": 1

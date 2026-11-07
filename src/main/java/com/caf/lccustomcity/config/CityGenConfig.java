@@ -69,6 +69,7 @@ public final class CityGenConfig {
     public static final String SEC_TERRAIN = "地形过渡";
     public static final String SEC_DENSITY = "城市大小与密度";
     public static final String SEC_BUILDING = "建筑生成";
+    public static final String SEC_TRANSPORT = "跨城交通";
 
     public static final List<Entry> ENTRIES = List.of(
             // ---- 破坏与废墟 ----
@@ -113,7 +114,13 @@ public final class CityGenConfig {
             new Entry(SEC_BUILDING, "公园几率", "PARK_CHANCE", Type.FLOAT, "本模组已清空公园内容, 此项实际无影响"),
             new Entry(SEC_BUILDING, "走廊几率", "CORRIDOR_CHANCE", Type.FLOAT, "地铁走廊"),
             new Entry(SEC_BUILDING, "桥梁几率", "BRIDGE_CHANCE", Type.FLOAT, "高架桥"),
-            new Entry(SEC_BUILDING, "喷泉几率", "FOUNTAIN_CHANCE", Type.FLOAT, "街道喷泉")
+            new Entry(SEC_BUILDING, "喷泉几率", "FOUNTAIN_CHANCE", Type.FLOAT, "街道喷泉"),
+            new Entry(SEC_TRANSPORT, "高速路间距掩码", "HIGHWAY_DISTANCE_MASK", Type.INT, "0关闭自动高速路、高架桥及其隧道，兼容两种高速路生成模式"),
+            new Entry(SEC_TRANSPORT, "规划街道桥梁几率", "PLANNED_PRIMARY_BRIDGE_CHANCE", Type.FLOAT, "0关闭规划街道的跨水桥梁"),
+            new Entry(SEC_TRANSPORT, "自动铁路", "RAILWAYS_ENABLED", Type.BOOLEAN, "false关闭自动铁路，包括海底铁路隧道"),
+            new Entry(SEC_TRANSPORT, "自动车站", "RAILWAY_STATIONS_ENABLED", Type.BOOLEAN, "false关闭自动铁路车站与地铁站"),
+            new Entry(SEC_TRANSPORT, "地表车站", "RAILWAY_SURFACE_STATIONS_ENABLED", Type.BOOLEAN, "false关闭地表车站"),
+            new Entry(SEC_TRANSPORT, "铁路地牢几率", "RAILWAY_DUNGEON_CHANCE", Type.FLOAT, "0关闭铁路地牢")
     );
 
     /** 每个分组的说明, 写进模板的 {@code _说明} 字段。 */
@@ -122,7 +129,8 @@ public final class CityGenConfig {
             SEC_HEIGHT, "城市地面高度。默认: 全城锁 0 级、地基统一在 Y=71, 不随地形起伏(平坦城市)。",
             SEC_TERRAIN, "城市边缘的自然地形向城市地面过渡的幅度(nodamage 档同款)。",
             SEC_DENSITY, "城市多大、多密(nodamage 档同款, 保证任何配置档选出来观感一致)。",
-            SEC_BUILDING, "建筑密度、楼层数、街道设施(nodamage 档同款)。"
+            SEC_BUILDING, "建筑密度、楼层数、街道设施(nodamage 档同款)。",
+            SEC_TRANSPORT, "失落城市自动生成的跨城公路、桥梁、铁路和隧道；不控制玩家放置的轨道或本包建筑自带道路。"
     );
 
     private CityGenConfig() {
