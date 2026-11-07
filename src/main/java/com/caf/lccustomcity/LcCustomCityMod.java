@@ -137,7 +137,10 @@ public class LcCustomCityMod {
     public LcCustomCityMod(IEventBus modEventBus, ModContainer modContainer) {
         try {
             CityNavigationItems.register(modEventBus);
-            com.caf.lccustomcity.radio.RadioService.register(modEventBus);
+            modEventBus.addListener(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent.class, event -> {
+                if (net.neoforged.fml.ModList.get().isLoaded("tarkov_stamina"))
+                    event.enqueueWork(com.caf.lccustomcity.impl.CityRadioIntegration::register);
+            });
             CharacterSpawnIntegration.register();
             CreateRailwayEvents.register();
             startup(modEventBus, FMLPaths.GAMEDIR.get());

@@ -49,3 +49,10 @@ type="optional"
 versionRange="[6.0.10,6.1)"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.caf_lc_customcity]]
+modId="tarkov_stamina"
+type="optional"
+versionRange="[1.2.5-native-equipment-beta22-radio,)"
+ordering="AFTER"
+side="BOTH"

@@ -240,9 +240,13 @@ try {
 } finally { $createZip.Dispose() }
 $createCp = (@($createJar.FullName) + @(Get-ChildItem -LiteralPath $depDir -Filter *.jar -File | ForEach-Object {$_.FullName})) -join ';'
 $neoCompile = Find-Newest (Join-Path $libs 'net/neoforged/neoforge') '*-universal.jar'
-$phoneJar = Get-ChildItem -LiteralPath ([System.IO.Path]::GetDirectoryName($lcJar)) -Filter 'mcphone-*.jar' -File | Select-Object -First 1
-if (-not $phoneJar) { Fail "MCphone jar is required to compile the optional radio app integration." }
-$fullCp = @($cp, $mixinJar, $lcJar, $realCp, $createCp, $neoCompile, $phoneJar.FullName) -join ';' 
+$coreJar = $local['caf_core_jar']
+if (-not $coreJar) {
+    $installedCore = Get-ChildItem -LiteralPath ([System.IO.Path]::GetDirectoryName($lcJar)) -Filter '*tarkov_stamina*.jar' -File | Select-Object -First 1
+    if ($installedCore) { $coreJar = $installedCore.FullName }
+}
+if (-not $coreJar -or -not (Test-Path -LiteralPath $coreJar)) { Fail "CAF core radio API jar is required at compile time; set caf_core_jar in local.properties." }
+$fullCp = @($cp, $mixinJar, $lcJar, $realCp, $createCp, $neoCompile, $coreJar) -join ';' 
 Write-Host "Compiling $($all.Count) java file(s) with the full game classpath..." -ForegroundColor Cyan
 # Compile together because asset generation, command handlers and runtime code
 # share types across packages; separate passes break those valid references.

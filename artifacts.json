@@ -1,17 +1,8 @@
 {
-  "version": "1.0.215",
-  "minecraft": "1.21.1",
-  "artifact": "caf_lc_customcity-1.21.1-1.0.215.jar",
-  "sha256": "7c3560e447962f0727e25df5dd9c8fa828d79b211aa6ba60ec99f7e533760175",
-  "source_artifact": "caf_lc_customcity-1.21.1-1.0.215-sources.jar",
-  "source_sha256": "50c04b4fb3c8814ebf2bf92f8f89b1c9f5c85cbee2923f33534a420d43c5194b",
-  "java_sources": 124,
-  "build_entry": "build.ps1",
-  "full_source_compiled": true,
-  "native_radio_state_assertions": 577,
-  "actual_cross_jar_spi_pass": true,
-  "minecraft_gameplay_tested": false,
-  "phone_jar_replaced": false,
-  "third_party_jars_bundled": false,
-  "preserves_214_city_plan": true
+  "version": "1.0.216",
+  "sha256": "e4d41d8fc0fdae15b13fc451cef2bb7a2a5d18dd8ad7d6131752e8543e9840b3",
+  "source_sha256": "7cd81364f4022fc1da5ae64c46bc356bdee9de7a3bf81ea761996fd18e87e88f",
+  "java_sources": 116,
+  "architecture": "Location provider only; radio state/service/stories in CAF core, UI in MCphone",
+  "runtime_tested": false
 }
