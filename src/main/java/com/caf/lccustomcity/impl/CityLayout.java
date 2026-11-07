@@ -38,7 +38,9 @@ public final class CityLayout {
                            boolean flatten, int spawnDistance) {}
     private record Tile(Context context, int x, int z) {}
     private record Plot(Context context, Center center) {}
-    private record Plan(int x,int z,Cell[][] cells) {}
+    private record Plan(int x,int z,Cell[][] cells,int spawnX,int spawnZ,String stage,long radioEpoch) {}
+    record CachedPlacement(Center center, UniquePlotPacking.Placement placement, String stage) {}
+    private static volatile long radioEpoch;
     private static final Map<Tile,List<Center>> CENTERS = lru(256);
     private static final Map<Plot,Plan> PLOTS = lru(32);
     private static final ConcurrentHashMap<Tile, CompletableFuture<List<Center>>> CENTER_BUILDS = new ConcurrentHashMap<>();
@@ -50,10 +52,34 @@ public final class CityLayout {
         };
     }
     public static void clear() {
-        synchronized(CityLayout.class){CENTERS.clear();PLOTS.clear();}
+        synchronized(CityLayout.class){radioEpoch++;CENTERS.clear();PLOTS.clear();}
         CENTER_BUILDS.clear();
         PLOT_BUILDS.clear();
         BuildingRotationRuntime.clear();
+    }
+    static long radioEpoch() { return radioEpoch; }
+
+    /** Reads only completed plans. Never calls cell, makePlot or any LC planner. */
+    static List<CachedPlacement> completedPlacements(IDimensionInfo provider) {
+        if (provider == null || provider.getWorld() == null) return List.of();
+        var profile = provider.getProfile();
+        if (!enabled(provider, profile)) return List.of();
+        Context expected = context(provider, profile);
+        var spawn = provider.getWorld().getLevel().getSharedSpawnPos();
+        List<CachedPlacement> result = new ArrayList<>();
+        synchronized (CityLayout.class) {
+            for (var entry : PLOTS.entrySet()) {
+                var plan = entry.getValue();
+                if (!expected.equals(entry.getKey().context()) || plan.radioEpoch() != radioEpoch
+                        || plan.spawnX() != spawn.getX() || plan.spawnZ() != spawn.getZ()) continue;
+                Set<UniquePlotPacking.Placement> seen = new HashSet<>();
+                for (var column : plan.cells()) for (var cell : column) {
+                    if (cell != null && cell.placement() != null && seen.add(cell.placement()))
+                        result.add(new CachedPlacement(entry.getKey().center(), cell.placement(), plan.stage()));
+                }
+            }
+        }
+        return List.copyOf(result);
     }
     public static boolean enabled(IDimensionInfo provider, LostCityProfile profile) {
         return LayoutCatalog.current().active() && provider != null && provider.getWorld()!=null
@@ -345,6 +371,8 @@ public final class CityLayout {
         return x>=0&&z>=0&&x<plan.cells().length&&z<plan.cells()[0].length?plan.cells()[x][z]:null;
     }
     private static Plan makePlot(ChunkCoord coord,IDimensionInfo p,LostCityProfile profile,Plot key) {
+        long completedEpoch = radioEpoch;
+        var planSpawn = p.getWorld().getLevel().getSharedSpawnPos();
         int radius=(int)Math.ceil(key.center().radius()/16),sx=radius*2+1,sz=sx;
         int ox=Math.floorDiv(key.center().x(),16)-radius,oz=Math.floorDiv(key.center().z(),16)-radius;
         CityStageConfig.Stage stage = CityStageConfig.current().enabled()
@@ -450,6 +478,6 @@ public final class CityLayout {
         if(!missing.isEmpty())org.slf4j.LoggerFactory.getLogger("CAF-LC-Layout").warn(
                 "[CAF-LC] 城市 ({}, {}) 无法放齐建筑，缺少 {} 栋: {}。请增大城市或对应分区面积。",
                 key.center().x(),key.center().z(),missing.size(),missing);
-        return new Plan(ox,oz,cells);
+        return new Plan(ox,oz,cells,planSpawn.getX(),planSpawn.getZ(),stage == null ? null : stage.name(),completedEpoch);
     }
 }

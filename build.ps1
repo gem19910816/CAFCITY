@@ -240,7 +240,9 @@ try {
 } finally { $createZip.Dispose() }
 $createCp = (@($createJar.FullName) + @(Get-ChildItem -LiteralPath $depDir -Filter *.jar -File | ForEach-Object {$_.FullName})) -join ';'
 $neoCompile = Find-Newest (Join-Path $libs 'net/neoforged/neoforge') '*-universal.jar'
-$fullCp = @($cp, $mixinJar, $lcJar, $realCp, $createCp, $neoCompile) -join ';' 
+$phoneJar = Get-ChildItem -LiteralPath ([System.IO.Path]::GetDirectoryName($lcJar)) -Filter 'mcphone-*.jar' -File | Select-Object -First 1
+if (-not $phoneJar) { Fail "MCphone jar is required to compile the optional radio app integration." }
+$fullCp = @($cp, $mixinJar, $lcJar, $realCp, $createCp, $neoCompile, $phoneJar.FullName) -join ';' 
 Write-Host "Compiling $($all.Count) java file(s) with the full game classpath..." -ForegroundColor Cyan
 # Compile together because asset generation, command handlers and runtime code
 # share types across packages; separate passes break those valid references.
@@ -280,6 +282,10 @@ $outJar = Join-Path $libsOut $jarName
 if (Test-Path -LiteralPath $outJar) { Remove-Item -LiteralPath $outJar -Force }
 & $jarExe --create --file $outJar --manifest $manifest -C $classes .
 if ($LASTEXITCODE -ne 0) { Fail "jar packaging failed." }
+
+$sourceJar = Join-Path $libsOut "caf_lc_customcity-1.21.1-$modVersion-sources.jar"
+& $jarExe --create --file $sourceJar -C (Join-Path $root 'src/main/java') . -C (Join-Path $root 'src/main/resources') .
+if ($LASTEXITCODE -ne 0) { Fail "source jar packaging failed." }
 
 $sizeKB = [math]::Round((Get-Item -LiteralPath $outJar).Length / 1KB, 1)
 Write-Host ""

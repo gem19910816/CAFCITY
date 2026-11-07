@@ -137,6 +137,7 @@ public class LcCustomCityMod {
     public LcCustomCityMod(IEventBus modEventBus, ModContainer modContainer) {
         try {
             CityNavigationItems.register(modEventBus);
+            com.caf.lccustomcity.radio.RadioService.register(modEventBus);
             CharacterSpawnIntegration.register();
             CreateRailwayEvents.register();
             startup(modEventBus, FMLPaths.GAMEDIR.get());
