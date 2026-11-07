@@ -33,7 +33,9 @@ public final class CityLayout {
     }
     private record Context(Object world, Object dimension, LostCityProfile profile, long seed, long revision,
                            long stageRevision,
-                           int minRadius, int maxRadius, float threshold, double chance) {}
+                           int minRadius, int maxRadius, float threshold, double chance,
+                           com.caf.lccustomcity.config.StarterTownConfig.Settings starter,
+                           boolean flatten, int spawnDistance) {}
     private record Tile(Context context, int x, int z) {}
     private record Plot(Context context, Center center) {}
     private record Plan(int x,int z,Cell[][] cells) {}
@@ -61,7 +63,10 @@ public final class CityLayout {
     private static Context context(IDimensionInfo p, LostCityProfile profile) {
         return new Context(p.getWorld().getLevel(),p.getType(),profile,p.getSeed(),LayoutCatalog.current().revision(),
                 CityStageConfig.current().revision(),
-                profile.CITY_MINRADIUS,profile.CITY_MAXRADIUS,profile.CITY_THRESHOLD,profile.CITY_CHANCE);
+                profile.CITY_MINRADIUS,profile.CITY_MAXRADIUS,profile.CITY_THRESHOLD,profile.CITY_CHANCE,
+                com.caf.lccustomcity.config.StarterTownConfig.current(),
+                com.caf.lccustomcity.config.ForceFlattenConfig.enabled(),
+                com.caf.lccustomcity.config.SpawnCityConfig.distance());
     }
     /** Native centers plus the spawn guarantee's synthetic center, in block coordinates. */
     public static Center center(ChunkCoord coord, IDimensionInfo p, LostCityProfile profile) {

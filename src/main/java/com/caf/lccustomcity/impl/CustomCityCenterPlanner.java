@@ -3,6 +3,8 @@ package com.caf.lccustomcity.impl;
 import com.caf.lccustomcity.config.CityStageConfig;
 import com.caf.lccustomcity.config.SpawnCityConfig;
 import com.caf.lccustomcity.config.StageLayoutConfig;
+import com.caf.lccustomcity.config.StarterTownConfig;
+import com.caf.lccustomcity.config.ForceFlattenConfig;
 import mcjty.lostcities.config.LostCityProfile;
 import mcjty.lostcities.varia.ChunkCoord;
 import mcjty.lostcities.worldgen.IDimensionInfo;
@@ -31,9 +33,11 @@ public final class CustomCityCenterPlanner {
     private static final int MAX_WORLD_RADIUS_BLOCKS = 30_000;
     private static final int MAX_RESOLVED_CANDIDATES = 65_536;
     private record WorldPlanKey(Object level, LostCityProfile profile, long seed, long revision,
-                                int spawnX, int spawnZ) {}
+                                int spawnX, int spawnZ, StarterTownConfig.Settings starter,
+                                boolean flatten, int spawnDistance) {}
     private record CandidateKey(Object level, long seed, long revision, String stageName,
-                                int originX, int originZ) {}
+                                int originX, int originZ, StarterTownConfig.Settings starter,
+                                boolean flatten, int spawnDistance) {}
     private record CandidateResolution(int x, int z) {}
     private static final Map<CandidateKey, CandidateResolution> RESOLVED_CANDIDATES =
             new LinkedHashMap<>(1024, 0.75f, true) {
@@ -68,6 +72,17 @@ public final class CustomCityCenterPlanner {
         int maxZ = (tileZ + 1) * TILE_BLOCKS + margin;
         Set<Long> seen = new HashSet<>();
         List<CityLayout.Center> result = new ArrayList<>();
+
+        // This reserved point need not coincide with any hashed grid candidate.
+        // Include it in tile scans as well as in the global allow-list.
+        StarterTownRule.Reservation nearby = StarterTownRule.reservation(provider, profile);
+        if (nearby != null) {
+            CityLayout.Center town = nearby.town();
+            if (town.x() >= minX && town.x() <= maxX && town.z() >= minZ && town.z() <= maxZ) {
+                result.add(town);
+                seen.add((((long) town.x()) << 32) ^ (town.z() & 0xffffffffL));
+            }
+        }
 
         for (String stageName : config.stageNames()) {
             CityStageConfig.Stage stage = config.stage(stageName);
@@ -117,7 +132,8 @@ public final class CustomCityCenterPlanner {
         BlockPos spawn = provider.getWorld().getLevel().getSharedSpawnPos();
         if (spawn == null) return List.of();
         WorldPlanKey key = new WorldPlanKey(provider.getWorld().getLevel(), profile, provider.getSeed(),
-                CityStageConfig.current().revision(), spawn.getX(), spawn.getZ());
+                CityStageConfig.current().revision(), spawn.getX(), spawn.getZ(),
+                StarterTownConfig.current(), ForceFlattenConfig.enabled(), SpawnCityConfig.distance());
         List<CityLayout.Center> cached = WORLD_PLANS.get(key);
         if (cached != null) return cached;
 
@@ -130,11 +146,18 @@ public final class CustomCityCenterPlanner {
         CityStageConfig.Stage village = config.stage(CityStageConfig.VILLAGE);
         int villageQuota = CityStageRuntime.worldQuota(provider, CityStageConfig.VILLAGE);
         if (villageQuota > 0) {
-            int[] synthetic = SpawnCityRule.centerFor(provider, profile);
-            CityLayout.Center anchor = synthetic == null
-                    ? nearestNativeAtSpawn(provider, profile, spawn, village)
-                    : plannedCenter(provider, profile, synthetic[0], synthetic[1], synthetic[2]);
+            CityLayout.Center anchor = startingVillage(provider, profile, spawn);
             if (anchor != null && withinWorldRadius(anchor, spawn, worldRadiusSquared)) result.add(anchor);
+        }
+
+        // Reserve before the remaining villages, so they cannot occupy the nearby-town slot.
+        // The normal per-stage loop counts it and fills only the remaining T2 quota.
+        StarterTownRule.Reservation nearby = StarterTownRule.reservation(provider, profile);
+        if (nearby != null && !result.isEmpty()
+                && withinWorldRadius(nearby.town(), spawn, worldRadiusSquared)) {
+            result.clear();
+            result.addAll(nearby.villages());
+            result.add(nearby.town());
         }
 
         for (String stageName : config.stageNames()) {
@@ -150,42 +173,7 @@ public final class CustomCityCenterPlanner {
             target -= alreadySelected;
             if (target <= 0) continue;
 
-            int stageMin = Math.max(0, stage.minDistance());
-            int stageMax = stage.maxDistance() < 0
-                    ? MAX_WORLD_RADIUS_BLOCKS + 1 : Math.min(MAX_WORLD_RADIUS_BLOCKS + 1, stage.maxDistance());
-            if (stageMin >= stageMax) continue;
-            int grid = gridSize(stage);
-            int count = candidateCount(stage);
-            int gx0 = Math.floorDiv(spawn.getX() - stageMax, grid) - 1;
-            int gx1 = Math.floorDiv(spawn.getX() + stageMax, grid) + 1;
-            int gz0 = Math.floorDiv(spawn.getZ() - stageMax, grid) - 1;
-            int gz1 = Math.floorDiv(spawn.getZ() + stageMax, grid) + 1;
-            long minSquared = (long) stageMin * stageMin;
-            long maxSquared = (long) stageMax * stageMax;
-            List<PlannedPoint> points = new ArrayList<>();
-            for (int gx = gx0; gx <= gx1; gx++) {
-                for (int gz = gz0; gz <= gz1; gz++) {
-                    long cellSeed = RadialZonePlan.citySeed(provider.getSeed() ^ VERSION
-                            ^ stageName.hashCode(), gx, gz);
-                    for (int index = 0; index < count; index++) {
-                        long pointSeed = RadialZonePlan.mix(cellSeed + index * 0x9e3779b97f4a7c15L);
-                        int localX = 16 + (int) Math.floorMod(pointSeed, Math.max(16, grid - 32));
-                        int localZ = 16 + (int) Math.floorMod(RadialZonePlan.mix(pointSeed), Math.max(16, grid - 32));
-                        int x = Math.floorDiv(gx * grid + localX, CHUNK) * CHUNK;
-                        int z = Math.floorDiv(gz * grid + localZ, CHUNK) * CHUNK;
-                        long dx = (long) x - spawn.getX();
-                        long dz = (long) z - spawn.getZ();
-                        long distanceSquared = dx * dx + dz * dz;
-                        if (distanceSquared < minSquared || distanceSquared >= maxSquared
-                                || distanceSquared > worldRadiusSquared) continue;
-                        points.add(new PlannedPoint(x, z, stageName, distanceSquared));
-                    }
-                }
-            }
-            points.sort(java.util.Comparator
-                    .comparingLong((PlannedPoint point) -> RadialZonePlan.citySeed(provider.getSeed(),
-                            point.x(), point.z()))
-                    .thenComparingInt(PlannedPoint::x).thenComparingInt(PlannedPoint::z));
+            List<PlannedPoint> points = stagePoints(provider, stage, spawn);
             Set<Long> seen = new HashSet<>();
             for (PlannedPoint point : points) {
                 if (alreadySelected >= CityStageRuntime.worldQuota(provider, stageName)) break;
@@ -212,8 +200,99 @@ public final class CustomCityCenterPlanner {
         return plan;
     }
 
+    private static List<PlannedPoint> stagePoints(IDimensionInfo provider, CityStageConfig.Stage stage, BlockPos spawn) {
+        String stageName = stage.name();
+        long worldRadiusSquared = (long) MAX_WORLD_RADIUS_BLOCKS * MAX_WORLD_RADIUS_BLOCKS;
+        int stageMin = Math.max(0, stage.minDistance());
+        int stageMax = stage.maxDistance() < 0
+                ? MAX_WORLD_RADIUS_BLOCKS + 1 : Math.min(MAX_WORLD_RADIUS_BLOCKS + 1, stage.maxDistance());
+        if (stageMin >= stageMax) return List.of();
+        int grid = gridSize(stage);
+        int count = candidateCount(stage);
+        int gx0 = Math.floorDiv(spawn.getX() - stageMax, grid) - 1;
+        int gx1 = Math.floorDiv(spawn.getX() + stageMax, grid) + 1;
+        int gz0 = Math.floorDiv(spawn.getZ() - stageMax, grid) - 1;
+        int gz1 = Math.floorDiv(spawn.getZ() + stageMax, grid) + 1;
+        long minSquared = (long) stageMin * stageMin;
+        long maxSquared = (long) stageMax * stageMax;
+        List<PlannedPoint> points = new ArrayList<>();
+        for (int gx = gx0; gx <= gx1; gx++) {
+            for (int gz = gz0; gz <= gz1; gz++) {
+                long cellSeed = RadialZonePlan.citySeed(provider.getSeed() ^ VERSION
+                        ^ stageName.hashCode(), gx, gz);
+                for (int index = 0; index < count; index++) {
+                    long pointSeed = RadialZonePlan.mix(cellSeed + index * 0x9e3779b97f4a7c15L);
+                    int localX = 16 + (int) Math.floorMod(pointSeed, Math.max(16, grid - 32));
+                    int localZ = 16 + (int) Math.floorMod(RadialZonePlan.mix(pointSeed), Math.max(16, grid - 32));
+                    int x = Math.floorDiv(gx * grid + localX, CHUNK) * CHUNK;
+                    int z = Math.floorDiv(gz * grid + localZ, CHUNK) * CHUNK;
+                    long dx = (long) x - spawn.getX();
+                    long dz = (long) z - spawn.getZ();
+                    long distanceSquared = dx * dx + dz * dz;
+                    if (distanceSquared < minSquared || distanceSquared >= maxSquared
+                            || distanceSquared > worldRadiusSquared) continue;
+                    points.add(new PlannedPoint(x, z, stageName, distanceSquared));
+                }
+            }
+        }
+        points.sort(java.util.Comparator
+                .comparingLong((PlannedPoint point) -> RadialZonePlan.citySeed(provider.getSeed(),
+                        point.x(), point.z()))
+                .thenComparingInt(PlannedPoint::x).thenComparingInt(PlannedPoint::z));
+        return points;
+    }
+
     public static boolean worldCenterAllowed(IDimensionInfo provider, LostCityProfile profile, int x, int z) {
         return scanWorld(provider, profile).stream().anyMatch(center -> center.x() == x && center.z() == z);
+    }
+
+    public static synchronized void clear() {
+        WORLD_PLANS.clear();
+        synchronized (RESOLVED_CANDIDATES) { RESOLVED_CANDIDATES.clear(); }
+    }
+
+    static CityLayout.Center startingVillage(IDimensionInfo provider, LostCityProfile profile, BlockPos spawn) {
+        CityStageConfig.Stage village = CityStageConfig.current().stage(CityStageConfig.VILLAGE);
+        if (village == null || !village.enabled()) return null;
+        int[] synthetic = SpawnCityRule.centerFor(provider, profile);
+        return synthetic == null ? nearestNativeAtSpawn(provider, profile, spawn, village)
+                : plannedCenter(provider, profile, synthetic[0], synthetic[1], synthetic[2]);
+    }
+
+    /** Original T1 plan with no nearby-town dependency, so adding T2 cannot consume villages. */
+    static List<CityLayout.Center> baseVillagePlan(IDimensionInfo provider, LostCityProfile profile,
+                                                 BlockPos spawn, CityLayout.Center anchor) {
+        CityStageConfig.Stage stage = CityStageConfig.current().stage(CityStageConfig.VILLAGE);
+        int quota = CityStageRuntime.worldQuota(provider, CityStageConfig.VILLAGE);
+        List<CityLayout.Center> result = new ArrayList<>();
+        if (anchor != null && quota > 0) result.add(anchor);
+        if (stage == null || !stage.enabled()) return List.copyOf(result);
+        Set<Long> seen = new HashSet<>();
+        for (PlannedPoint point : stagePoints(provider, stage, spawn)) {
+            if (result.size() >= quota) break;
+            int[] xy = nearestEligible(provider, profile, stage.name(), point.x(), point.z(), true);
+            if (xy == null) continue;
+            long key = (((long) xy[0]) << 32) ^ (xy[1] & 0xffffffffL);
+            if (!seen.add(key)) continue;
+            CityLayout.Center candidate = plannedCenter(provider, profile, xy[0], xy[1], profile.CITY_MAXRADIUS);
+            if (candidate == null) continue;
+            int spacing = baseVillageSpacing(provider, stage, candidate);
+            boolean clear = true;
+            for (CityLayout.Center other : result) {
+                long dx = (long) candidate.x() - other.x(), dz = (long) candidate.z() - other.z();
+                long required = Math.max(spacing, baseVillageSpacing(provider, stage, other));
+                if (dx * dx + dz * dz < required * required) { clear = false; break; }
+            }
+            if (clear) result.add(candidate);
+        }
+        return List.copyOf(result);
+    }
+
+    private static int baseVillageSpacing(IDimensionInfo provider, CityStageConfig.Stage stage, CityLayout.Center c) {
+        String style = CityStageRuntime.selectedStyle(provider, stage, c.x(), c.z());
+        CityStageRuntime.Geometry geometry = CityStageRuntime.geometry(stage, style);
+        StageLayoutConfig.Range spacing = geometry == null ? null : geometry.layout().centerSpacing();
+        return spacing == null || spacing.min() == null ? 0 : spacing.min();
     }
 
     private static boolean withinWorldRadius(CityLayout.Center center, BlockPos spawn, long maxSquared) {
@@ -223,7 +302,7 @@ public final class CustomCityCenterPlanner {
 
     private static CityLayout.Center plannedCenter(IDimensionInfo provider, LostCityProfile profile,
                                                     int x, int z, int fallbackRadius) {
-        CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, profile, x, z);
+        CityStageConfig.Stage stage = CityStageRuntime.baseAcceptedStage(provider, profile, x, z);
         if (stage == null) return null;
         String style = CityStageRuntime.selectedStyle(provider, stage, x, z);
         int radius = CityStageRuntime.radiusBlocks(provider, stage, style, fallbackRadius, x, z);
@@ -243,7 +322,7 @@ public final class CustomCityCenterPlanner {
                 ChunkCoord coord = new ChunkCoord(provider.getType(), cx, cz);
                 if (BuildingInfo.getProfile(coord, provider) != profile || !City.isCityCenter(coord, provider)) continue;
                 int x = cx * CHUNK, z = cz * CHUNK;
-                CityStageConfig.Stage accepted = CityStageRuntime.acceptedStage(provider, profile, x, z);
+                CityStageConfig.Stage accepted = CityStageRuntime.baseAcceptedStage(provider, profile, x, z);
                 if (accepted == null || !accepted.name().equals(stage.name())) continue;
                 long dx = (long) x - spawn.getX(), dz = (long) z - spawn.getZ();
                 long distance = dx * dx + dz * dz;
@@ -261,24 +340,29 @@ public final class CustomCityCenterPlanner {
 
     private static int[] nearestEligible(IDimensionInfo provider, LostCityProfile profile,
                                          String stageName, int originX, int originZ) {
+        return nearestEligible(provider, profile, stageName, originX, originZ, false);
+    }
+
+    private static int[] nearestEligible(IDimensionInfo provider, LostCityProfile profile,
+                                         String stageName, int originX, int originZ, boolean base) {
         for (int ring = 0; ring <= LOCAL_SEARCH_CHUNKS; ring++) {
             if (ring == 0) {
-                if (isEligible(provider, profile, stageName, originX, originZ)) {
+                if (isEligible(provider, profile, stageName, originX, originZ, base)) {
                     return new int[]{originX, originZ};
                 }
                 continue;
             }
             for (int offset = -ring; offset <= ring; offset++) {
                 int[] candidate = new int[]{originX + offset * CHUNK, originZ - ring * CHUNK};
-                if (isEligible(provider, profile, stageName, candidate[0], candidate[1])) return candidate;
+                if (isEligible(provider, profile, stageName, candidate[0], candidate[1], base)) return candidate;
                 candidate = new int[]{originX + offset * CHUNK, originZ + ring * CHUNK};
-                if (isEligible(provider, profile, stageName, candidate[0], candidate[1])) return candidate;
+                if (isEligible(provider, profile, stageName, candidate[0], candidate[1], base)) return candidate;
             }
             for (int offset = -ring + 1; offset < ring; offset++) {
                 int[] candidate = new int[]{originX - ring * CHUNK, originZ + offset * CHUNK};
-                if (isEligible(provider, profile, stageName, candidate[0], candidate[1])) return candidate;
+                if (isEligible(provider, profile, stageName, candidate[0], candidate[1], base)) return candidate;
                 candidate = new int[]{originX + ring * CHUNK, originZ + offset * CHUNK};
-                if (isEligible(provider, profile, stageName, candidate[0], candidate[1])) return candidate;
+                if (isEligible(provider, profile, stageName, candidate[0], candidate[1], base)) return candidate;
             }
         }
         return null;
@@ -288,7 +372,8 @@ public final class CustomCityCenterPlanner {
     private static int[] resolveCandidate(IDimensionInfo provider, LostCityProfile profile,
                                           String stageName, int originX, int originZ) {
         CandidateKey key = new CandidateKey(provider.getWorld().getLevel(), provider.getSeed(),
-                CityStageConfig.current().revision(), stageName, originX, originZ);
+                CityStageConfig.current().revision(), stageName, originX, originZ,
+                StarterTownConfig.current(), ForceFlattenConfig.enabled(), SpawnCityConfig.distance());
         synchronized (RESOLVED_CANDIDATES) {
             CandidateResolution cached = RESOLVED_CANDIDATES.get(key);
             if (cached != null) {
@@ -306,9 +391,16 @@ public final class CustomCityCenterPlanner {
 
     private static boolean isEligible(IDimensionInfo provider, LostCityProfile profile,
                                       String stageName, int x, int z) {
-        CityStageConfig.Stage planned = CityStageRuntime.plannedStage(provider, profile, x, z);
+        return isEligible(provider, profile, stageName, x, z, false);
+    }
+
+    private static boolean isEligible(IDimensionInfo provider, LostCityProfile profile,
+                                      String stageName, int x, int z, boolean base) {
+        CityStageConfig.Stage planned = base ? CityStageRuntime.basePlannedStage(provider, profile, x, z)
+                : CityStageRuntime.plannedStage(provider, profile, x, z);
         if (planned == null || !planned.name().equals(stageName)) return false;
-        CityStageConfig.Stage accepted = CityStageRuntime.acceptedStage(provider, profile, x, z);
+        CityStageConfig.Stage accepted = base ? CityStageRuntime.baseAcceptedStage(provider, profile, x, z)
+                : CityStageRuntime.acceptedStage(provider, profile, x, z);
         return accepted != null && accepted.name().equals(stageName);
     }
 

@@ -2,6 +2,9 @@ package com.caf.lccustomcity.impl;
 
 import com.caf.lccustomcity.config.CityStageConfig;
 import com.caf.lccustomcity.config.StageLayoutConfig;
+import com.caf.lccustomcity.config.StarterTownConfig;
+import com.caf.lccustomcity.config.ForceFlattenConfig;
+import com.caf.lccustomcity.config.SpawnCityConfig;
 import mcjty.lostcities.config.LostCityProfile;
 import mcjty.lostcities.worldgen.IDimensionInfo;
 import net.minecraft.core.BlockPos;
@@ -47,7 +50,8 @@ public final class CityStageRuntime {
     private static final int MAX_ELIGIBILITY_CACHE = 16_384;
     private static final int MAX_TERRAIN_CACHE = 65_536;
     private record EligibilityKey(Object level, LostCityProfile profile, long seed,
-                                  int spawnX, int spawnZ, int centerX, int centerZ, long revision) {}
+                                  int spawnX, int spawnZ, int centerX, int centerZ, long revision,
+                                  StarterTownConfig.Settings starter, boolean flatten, int spawnDistance) {}
     private record EligibilityValue(CityStageConfig.Stage stage) {}
     private record TerrainKey(Object level, long seed, long revision, int x, int z) {}
     private static final Map<EligibilityKey, EligibilityValue> ELIGIBILITY_CACHE =
@@ -127,7 +131,8 @@ public final class CityStageRuntime {
             return null;
         }
         EligibilityKey key = new EligibilityKey(world.getLevel(), profile, provider.getSeed(),
-                spawn.getX(), spawn.getZ(), centerX, centerZ, config.revision());
+                spawn.getX(), spawn.getZ(), centerX, centerZ, config.revision(),
+                StarterTownConfig.current(), ForceFlattenConfig.enabled(), SpawnCityConfig.distance());
         synchronized (ELIGIBILITY_CACHE) {
             EligibilityValue cached = ELIGIBILITY_CACHE.get(key);
             if (cached != null) return cached.stage();
@@ -162,9 +167,8 @@ public final class CityStageRuntime {
     /** Applies the configured minimum center spacing to the global selected set. */
     public static boolean worldSpacingAllows(IDimensionInfo provider, CityLayout.Center candidate,
                                              List<CityLayout.Center> accepted) {
-        int candidateMinimum = minimumSpacing(provider, candidate);
         for (CityLayout.Center other : accepted) {
-            int required = Math.max(candidateMinimum, minimumSpacing(provider, other));
+            int required = requiredSpacing(provider, candidate, other);
             if (closerThan(candidate, other, required)) return false;
         }
         return true;
@@ -185,18 +189,48 @@ public final class CityStageRuntime {
                                                                 BlockPos spawn, int centerX, int centerZ) {
         CityStageConfig.Stage stage = computePlannedStage(config, provider, profile, spawn, centerX, centerZ);
         if (stage == null) return null;
+        if (StarterTownRule.isTown(provider, profile, centerX, centerZ)) return stage;
+        return stageTerrainAllows(provider, stage, centerX, centerZ) ? stage : null;
+    }
+
+    /** BASE queries are used only to find the village anchor, before the nearby-town overlay exists. */
+    static CityStageConfig.Stage basePlannedStage(IDimensionInfo provider, LostCityProfile profile, int x, int z) {
+        if (provider == null || profile == null || provider.getWorld() == null
+                || profile != provider.getProfile() || !CityStageConfig.current().enabled()) return null;
+        BlockPos spawn = provider.getWorld().getLevel().getSharedSpawnPos();
+        return spawn == null ? null : computeBasePlannedStage(CityStageConfig.current(), provider, spawn, x, z);
+    }
+
+    static CityStageConfig.Stage baseAcceptedStage(IDimensionInfo provider, LostCityProfile profile, int x, int z) {
+        CityStageConfig.Stage stage = basePlannedStage(provider, profile, x, z);
+        if (stage == null) return null;
+        BlockPos spawn = provider.getWorld().getLevel().getSharedSpawnPos();
+        boolean atSpawn = x == Math.floorDiv(spawn.getX(), 16) * 16
+                && z == Math.floorDiv(spawn.getZ(), 16) * 16;
+        return atSpawn || stageTerrainAllows(provider, stage, x, z) ? stage : null;
+    }
+
+    static boolean stageTerrainAllows(IDimensionInfo provider, CityStageConfig.Stage stage, int centerX, int centerZ) {
+        CityStageConfig config = CityStageConfig.current();
+        WorldGenLevel world = provider.getWorld();
         String style = selectedStyle(provider, stage, centerX, centerZ);
         Geometry geometry = geometry(stage, style);
-        if (!terrainAllowed(config, world, provider.getSeed(), centerX, centerZ)) return null;
+        if (!terrainAllowed(config, world, provider.getSeed(), centerX, centerZ)) return false;
         if (geometry != null && geometry.layout().terrainCheckEnabled()
                 && !terrainNeighborhoodAllowed(config, world, provider.getSeed(), centerX, centerZ,
-                geometry.layout().terrainCheckRadiusBlocks())) return null;
-        return stage;
+                geometry.layout().terrainCheckRadiusBlocks())) return false;
+        return true;
     }
 
     private static CityStageConfig.Stage computePlannedStage(CityStageConfig config, IDimensionInfo provider,
                                                                LostCityProfile profile, BlockPos spawn,
                                                                int centerX, int centerZ) {
+        if (StarterTownRule.isTown(provider, profile, centerX, centerZ)) return config.stage(CityStageConfig.TOWN);
+        return computeBasePlannedStage(config, provider, spawn, centerX, centerZ);
+    }
+
+    private static CityStageConfig.Stage computeBasePlannedStage(CityStageConfig config, IDimensionInfo provider,
+                                                               BlockPos spawn, int centerX, int centerZ) {
         long dx = (long) centerX - spawn.getX();
         long dz = (long) centerZ - spawn.getZ();
         long squared = dx * dx + dz * dz;
@@ -205,19 +239,25 @@ public final class CityStageRuntime {
         if (stage == null) {
             return null;
         }
+        return stageRuleAllows(provider, stage, centerX, centerZ) ? stage : null;
+    }
+
+    static boolean stageRuleAllows(IDimensionInfo provider, CityStageConfig.Stage stage, int centerX, int centerZ) {
+        if (stage == null || !stage.enabled()) return false;
+        CityStageConfig config = CityStageConfig.current();
         String style = selectedStyle(provider, stage, centerX, centerZ);
         CityStageConfig.StyleStage rule = config.styleStage(style, stage.name());
         if (rule == null || !rule.enabled()) {
-            return null;
+            return false;
         }
         double roll = probabilityRoll(provider.getSeed(), centerX, centerZ, stage.name() + ":" + style);
         Geometry geometry = geometry(stage, style);
         double chance = geometry == null || geometry.layout().centerChance() == null
                 ? rule.probability() : geometry.layout().centerChance();
         if (chance <= 0 || roll >= chance) {
-            return null;
+            return false;
         }
-        return stage;
+        return true;
     }
 
     public static void clearEligibilityCache() {
@@ -227,6 +267,8 @@ public final class CityStageRuntime {
         synchronized (TERRAIN_CACHE) {
             TERRAIN_CACHE.clear();
         }
+        StarterTownRule.clear();
+        CustomCityCenterPlanner.clear();
     }
 
     private static boolean terrainAllowed(CityStageConfig config, WorldGenLevel world, long seed,
@@ -368,7 +410,8 @@ public final class CityStageRuntime {
             int maximum = spacing == null || spacing.max() == null ? 0 : spacing.max();
             boolean clear = true;
             for (CityLayout.Center other : anchors) {
-                long required = Math.max(minimum, minimumSpacing(provider, other));
+                if (sameCenter(candidate, other)) continue;
+                long required = requiredSpacing(provider, candidate, other);
                 if (closerThan(candidate, other, required)) { clear = false; break; }
             }
             // Decide each close pair by stable rank rather than by the order in
@@ -376,7 +419,7 @@ public final class CityStageRuntime {
             // This makes overlapping scan windows agree on which center wins.
             if (clear) for (CityLayout.Center other : ordered) {
                 if (sameCenter(candidate, other)) continue;
-                long required = Math.max(minimum, minimumSpacing(provider, other));
+                long required = requiredSpacing(provider, candidate, other);
                 if (closerThan(candidate, other, required)
                         && compareCenterPriority(other, candidate, provider.getSeed()) < 0) {
                     clear = false;
@@ -410,7 +453,14 @@ public final class CityStageRuntime {
         int[] value = SpawnCityRule.centerFor(provider, provider.getProfile());
         if (value == null) return null;
         return acceptedStage(provider, provider.getProfile(), value[0], value[1]) == null
-                ? null : new CityLayout.Center(value[0], value[1], value[2]);
+                ? null : new CityLayout.Center(value[0], value[1], value[2] * (1 - provider.getProfile().CITY_THRESHOLD));
+    }
+
+    private static int requiredSpacing(IDimensionInfo provider, CityLayout.Center a, CityLayout.Center b) {
+        if (StarterTownRule.isStarterPair(provider, a, b)) {
+            return (int) Math.ceil(a.radius() + b.radius() + StarterTownPlan.EDGE_GAP);
+        }
+        return Math.max(minimumSpacing(provider, a), minimumSpacing(provider, b));
     }
 
     private static int minimumSpacing(IDimensionInfo provider, CityLayout.Center center) {

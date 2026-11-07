@@ -233,7 +233,7 @@ public final class SpawnCityRule {
             }
             int centerX = Math.floorDiv(spawnX, SpawnCityPlan.CHUNK) * SpawnCityPlan.CHUNK;
             int centerZ = Math.floorDiv(spawnZ, SpawnCityPlan.CHUNK) * SpawnCityPlan.CHUNK;
-            CityStageConfig.Stage stage = CityStageRuntime.plannedStage(provider, profile, centerX, centerZ);
+            CityStageConfig.Stage stage = CityStageRuntime.basePlannedStage(provider, profile, centerX, centerZ);
             if (stage == null || !CityStageConfig.VILLAGE.equals(stage.name())) {
                 return new Result(false, false, 0, 0, radius);
             }
@@ -264,7 +264,7 @@ public final class SpawnCityRule {
                 long dz = (long) centerZ - spawnZ;
                 long distanceSquared = dx * dx + dz * dz;
                 if (distanceSquared > maxDistanceSquared || distanceSquared >= bestDistanceSquared) continue;
-                CityStageConfig.Stage stage = CityStageRuntime.acceptedStage(provider, profile, centerX, centerZ);
+                CityStageConfig.Stage stage = CityStageRuntime.baseAcceptedStage(provider, profile, centerX, centerZ);
                 if (stage == null || !CityStageConfig.VILLAGE.equals(stage.name())) continue;
                 best = new int[]{centerX, centerZ, radius};
                 bestDistanceSquared = distanceSquared;
@@ -278,7 +278,7 @@ public final class SpawnCityRule {
         if (!CityStageConfig.current().enabled()) return cities;
         List<int[]> eligible = new ArrayList<>();
         for (int[] city : cities) {
-            if (CityStageRuntime.acceptedStage(provider, profile, city[0], city[1]) != null) {
+            if (CityStageRuntime.baseAcceptedStage(provider, profile, city[0], city[1]) != null) {
                 eligible.add(city);
             }
         }

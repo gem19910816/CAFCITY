@@ -1,12 +1,13 @@
 {
-  "version": "1.0.212",
+  "version": "1.0.214",
   "minecraft": "1.21.1",
-  "artifact": "caf_lc_customcity-1.21.1-1.0.212.jar",
-  "sha256": "7bfc3e13de8ad3f8757147816525cf6d360a738e36414870a466860d7b65f314",
-  "java_sources": 107,
+  "artifact": "caf_lc_customcity-1.21.1-1.0.214.jar",
+  "sha256": "0d160668e941cbac1c3b2c376b7ec487de7b88ebef319cfa2a5fb6a90c27a062",
+  "java_sources": 114,
   "build_entry": "build.ps1",
   "full_source_compiled": true,
-  "real_NBT_regression_checks": 9,
+  "starter_town_runtime_assertions": 1823,
+  "fixed_terrain_seeds": 32,
   "minecraft_worldgen_tested": false,
   "third_party_jars_bundled": false
 }

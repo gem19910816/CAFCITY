@@ -62,6 +62,10 @@ public final class RootCityOptions {
         ScatteredMarginConfig.install(margin);
         EmptyPlotConfig.install(fillPlots);
         GapConfig.install(buildingGap);
+        boolean starterTown = bool(section, "开局农村附近保留小镇", true, null, "", warnings, () -> true);
+        int starterMin = integer(section, "近邻小镇城心距离最小", 600, null, "", warnings, () -> 600);
+        int starterMax = integer(section, "近邻小镇城心距离最大", 900, null, "", warnings, () -> 900);
+        StarterTownConfig.install(starterTown, starterMin, starterMax);
         return new Settings(spawnDistance, dynamic, highway, blockEntities, flatten, margin,
                 fillPlots, buildingGap);
     }

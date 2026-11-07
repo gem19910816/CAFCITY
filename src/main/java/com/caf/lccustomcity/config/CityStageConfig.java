@@ -262,6 +262,10 @@ public final class CityStageConfig {
         JsonObject addonOptions = new JsonObject();
         addonOptions.addProperty("_说明", "适用于所有阶段城市的附属功能设置，集中在根目录配置文件中。");
         addonOptions.addProperty("出生点城市中心距离", SpawnCityConfig.DEFAULT);
+        addonOptions.addProperty("开局农村附近保留小镇", true);
+        addonOptions.addProperty("近邻小镇城心距离最小", 600);
+        addonOptions.addProperty("近邻小镇城心距离最大", 900);
+        addonOptions.addProperty("_说明_近邻小镇", "只预留一座，计入小镇总量；距起步农村城心600–900格，仅这座近镇与原农村表作为普通阶段距离/城心间距的例外，城区之间仍留至少64格。缺少合适地形时仅在开启城市削平后整地兜底；距离可设16–2048格。");
         addonOptions.addProperty("_说明_出生点城市中心距离", "单位为格，保证出生点此距离内有城市城心；0关闭。");
         addonOptions.addProperty("生成建筑自带的动态结构", DynamicStructureConfig.DEFAULT);
         addonOptions.addProperty("_说明_生成建筑自带的动态结构", "生成建筑文件自带的实体，包括机械动力动态结构。");
